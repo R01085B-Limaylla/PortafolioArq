@@ -6,6 +6,20 @@
       "type": "pdf",
       "name": "Semana01_Arquitectura_2025.pdf",
       "url": "uploads/Semana01_Arquitectura_2025.pdf"
+    },
+    {
+      "title": "Silabo",
+      "week": 1,
+      "type": "pdf",
+      "name": "VIII_ArquitecturaDeSoftware.pdf",
+      "url": "uploads/VIII_ArquitecturaDeSoftware.pdf"
+    },
+    {
+      "title": "Mapa Mental",
+      "week": 1,
+      "type": "image",
+      "name": "mapamental.jpg",
+      "url": "uploads/mapamental.jpg"
     }
   ]
 }
