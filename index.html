@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js"></script>
-  <!-- PDF.js para miniaturas de PDF -->
+  <!-- PDF.js para miniaturas reales de PDFs (misma ruta/origen) -->
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script>
     if (window['pdfjsLib']) {
@@ -17,7 +17,7 @@
 </head>
 <body>
   <!-- Header -->
-  <header class="glass sticky top-0 z-40 border-b border-white/10">
+  <header class="glass sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-300 flex items-center justify-center font-black">SL</div>
@@ -38,62 +38,37 @@
 
   <!-- Main -->
   <main class="max-w-7xl mx-auto px-4 lg:px-6 py-8">
-    <!-- PORTFOLIO / DASHBOARD -->
+    <!-- PORTFOLIO -->
     <section id="view-portfolio" class="space-y-6">
-      <div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
-        <div class="flex-1">
-          <h2 class="text-2xl font-semibold">Dashboard principal</h2>
-          <p class="text-sm text-slate-400">Organiza tus entregas por semanas (1–16). Sube PDFs e imágenes, edítalos y bórralos.</p>
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-semibold">Dashboard</h2>
+          <p class="text-sm text-slate-400">Semanas 1–16 · Lee <code>uploads/index.json</code> al estar publicado</p>
         </div>
-        <div id="admin-tools" class="hidden card w-full lg:w-auto">
+        <div id="admin-tools" class="hidden card">
           <div class="flex items-center gap-2 mb-2">
             <span class="tag">Admin</span>
-            <h3 class="font-semibold">Gestión</h3>
-          </div>
-          <div class="flex items-center gap-2 mb-3">
-            <button id="btn-pick-folder" class="btn btn-ghost text-xs">Elegir carpeta destino (opcional)</button>
+            <button id="btn-pick-folder" class="btn btn-ghost text-xs">Elegir carpeta (uploads/)</button>
             <span id="folder-status" class="text-xs text-slate-400">Sin carpeta</span>
           </div>
-          <form id="upload-form" class="grid lg:grid-cols-5 gap-3">
-            <input required id="title-input" type="text" placeholder="Título del archivo" class="lg:col-span-2 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2" />
-            <select required id="week-select" class="rounded-xl bg-white/5 border border-white/10 px-4 py-2"></select>
-            <input required id="file-input" type="file" accept="image/*,application/pdf" class="lg:col-span-2 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white hover:file:bg-blue-700" />
-            <button class="btn btn-primary lg:col-span-5 justify-center" type="submit">Subir</button>
+          <form id="upload-form" class="grid sm:grid-cols-5 gap-2">
+            <input id="title-input" type="text" placeholder="Título" class="sm:col-span-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2" required />
+            <select id="week-select" class="rounded-xl bg-white/5 border border-white/10 px-3 py-2" required></select>
+            <input id="file-input" type="file" accept="image/*,application/pdf" class="sm:col-span-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2" required />
+            <button class="btn btn-primary sm:col-span-5 justify-center" type="submit">Subir</button>
           </form>
+          <p class="text-xs text-slate-400 mt-1">Con carpeta conectada, se guardan los archivos y se actualiza <code>uploads/index.json</code> automáticamente.</p>
         </div>
       </div>
-
-      <!-- Weeks Accordion -->
       <div id="weeks-accordion" class="space-y-3"></div>
     </section>
 
     <!-- PROFILE -->
     <section id="view-profile" class="hidden space-y-6">
       <div class="card p-6">
-        <div class="flex flex-col lg:flex-row gap-6">
-          <div class="flex-1">
-            <h2 class="text-2xl font-semibold">Sebastian Limaylla</h2>
-            <p class="text-slate-400">Creador de la página · Estudiante de Arquitectura de Software</p>
-            <div class="mt-4 grid sm:grid-cols-2 gap-3">
-              <div class="card">
-                <div class="text-sm text-slate-400">Curso</div>
-                <div class="font-semibold">Arquitectura de Software</div>
-              </div>
-              <div class="card">
-                <div class="text-sm text-slate-400">Institución</div>
-                <div class="font-semibold">Facultad de Ingeniería de Sistemas</div>
-              </div>
-              <div class="card">
-                <div class="text-sm text-slate-400">Ciclo</div>
-                <div class="font-semibold">2025-II</div>
-              </div>
-              <div class="card">
-                <div class="text-sm text-slate-400">Tecnologías</div>
-                <div class="font-semibold">HTML · CSS (Tailwind) · JS · IndexedDB</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <h2 class="text-2xl font-semibold">Perfil</h2>
+        <p class="text-slate-300">Sebastian Limaylla · Curso: Arquitectura de Software · 2025-II</p>
+        <p class="text-slate-400 text-sm mt-2">Tecnologías: HTML, Tailwind, JS, IndexedDB, PDF.js</p>
       </div>
     </section>
   </main>
@@ -106,9 +81,9 @@
         <button class="btn btn-ghost" data-close>✕</button>
       </div>
       <form id="login-form" class="space-y-3">
-        <input id="login-user" type="text" placeholder="Usuario" class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2" value="admin" />
+        <input id="login-user" type="text" placeholder="Usuario" value="admin" class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2" />
         <input id="login-pass" type="password" placeholder="Contraseña" class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2" />
-        <p class="text-xs text-slate-400">Credenciales demo: <b>admin / admin123</b></p>
+        <p class="text-xs text-slate-400">Demo: admin / admin123</p>
         <button class="btn btn-primary w-full" type="submit">Entrar</button>
       </form>
     </div>
@@ -125,7 +100,7 @@
     </div>
   </div>
 
-  <!-- Templates -->
+  <!-- Card Template -->
   <template id="card-template">
     <div class="card group">
       <div class="aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center relative">
@@ -137,11 +112,9 @@
           <div class="font-semibold line-clamp-1" data-role="title"></div>
           <div class="text-xs text-slate-400 mt-0.5" data-role="meta"></div>
         </div>
-        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div class="flex items-center gap-1">
           <button class="btn btn-ghost px-2 py-1 text-xs" data-action="preview">Ver</button>
           <a class="btn btn-ghost px-2 py-1 text-xs" data-role="download" download>Descargar</a>
-          <button class="btn btn-ghost px-2 py-1 text-xs hidden" data-action="edit">Editar</button>
-          <button class="btn btn-danger px-2 py-1 text-xs hidden" data-action="delete">Eliminar</button>
         </div>
       </div>
     </div>

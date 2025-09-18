@@ -1,269 +1,171 @@
-// Estado y claves
-const store = { entries: [], isAdmin: false, dirHandle: null };
-const dbEntriesKey = 'entries';
-const keyDirHandle = 'dirHandle';
-const dbFileKey = (id) => `file:${id}`;
+// ===== Estado =====
+const store = { entries: [], repoEntries: [], isAdmin:false, dirHandle:null };
+const dbEntriesKey='entries'; const keyDirHandle='dirHandle'; const dbFileKey=id=>`file:${id}`;
 
-// Utilidades
-const $ = (s, el=document) => el.querySelector(s);
-const $$ = (s, el=document) => [...el.querySelectorAll(s)];
-const fmtBytes = (b) => b<1024? b+' B' : b<1024**2? (b/1024).toFixed(1)+' KB' : b<1024**3? (b/1024**2).toFixed(1)+' MB' : (b/1024**3).toFixed(1)+' GB';
+// ===== Utils =====
+const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const fmtBytes=b=>b<1024?b+' B':b<1024**2?(b/1024).toFixed(1)+' KB':b<1024**3?(b/1024**2).toFixed(1)+' MB':(b/1024**3).toFixed(1)+' GB';
+const openModal=el=>el.style.display='flex'; const closeModal=el=>el.style.display='none';
+const showView=v=>{ $('#view-portfolio').classList.toggle('hidden',v!=='portfolio'); $('#view-profile').classList.toggle('hidden',v!=='profile'); };
+const updateAuthUI=()=>{ $('#btn-login').classList.toggle('hidden',store.isAdmin); $('#btn-logout').classList.toggle('hidden',!store.isAdmin); $('#admin-tools').classList.toggle('hidden',!store.isAdmin); };
 
-// Modales
-function openModal(el){ el.style.display = 'flex'; }
-function closeModal(el){ el.style.display = 'none'; }
-
-// Vistas
-function showView(name){
-  $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
-  $('#view-profile').classList.toggle('hidden', name !== 'profile');
-}
-
-// Auth UI
-function updateAuthUI(){
-  $('#btn-login').classList.toggle('hidden', store.isAdmin);
-  $('#btn-logout').classList.toggle('hidden', !store.isAdmin);
-  $('#admin-tools').classList.toggle('hidden', !store.isAdmin);
-  $$('#weeks-accordion [data-action="edit"]').forEach(b => b.classList.toggle('hidden', !store.isAdmin));
-  $$('#weeks-accordion [data-action="delete"]').forEach(b => b.classList.toggle('hidden', !store.isAdmin));
-}
-
-// Persistencia
 async function persistEntries(){ await idbKeyval.set(dbEntriesKey, store.entries); }
 async function loadEntries(){ store.entries = (await idbKeyval.get(dbEntriesKey)) || []; }
-async function saveDirHandle(handle){ try { await idbKeyval.set(keyDirHandle, handle); } catch(e){} }
-async function loadDirHandle(){ try { store.dirHandle = await idbKeyval.get(keyDirHandle) || null; } catch(e){} }
+async function saveDirHandle(handle){ try{ await idbKeyval.set(keyDirHandle, handle);}catch(e){} }
+async function loadDirHandle(){ try{ store.dirHandle = await idbKeyval.get(keyDirHandle) || null;}catch(e){} }
 
-function ensureWeekOptions(select){
-  select.innerHTML=''; const def = document.createElement('option');
-  def.value=''; def.disabled = true; def.selected = true; def.textContent = 'Semana…';
-  select.appendChild(def);
-  for(let w=1; w<=16; w++){ const opt=document.createElement('option'); opt.value=String(w); opt.textContent=`Semana ${w}`; select.appendChild(opt); }
+function ensureWeekOptions(sel){ sel.innerHTML='<option value="" disabled selected>Semana…</option>'+Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join(''); }
+
+// ===== Manifest remoto =====
+async function loadRepoManifest(){
+  try{ const r=await fetch('uploads/index.json',{cache:'no-store'}); if(!r.ok) return;
+    const d=await r.json(); store.repoEntries=(d.items||[]).map(it=>({title:it.title||it.name,name:it.name,week:+it.week,type:it.type,url:it.url}));
+  }catch(e){ /* sin manifest */ }
 }
 
-// PDF thumb helper
-async function renderPdfThumbnailToImg(pdfBlob, imgEl){
-  if(!window['pdfjsLib']) return;
-  try{
-    const url = URL.createObjectURL(pdfBlob);
-    const pdf = await pdfjsLib.getDocument({ url }).promise;
-    const page = await pdf.getPage(1);
-    const viewport = page.getViewport({ scale: 1.0 });
-    // Ajustar tamaño (ancho 640 aprox para buena miniatura)
-    const scale = Math.min(640 / viewport.width, 1.5);
-    const vp = page.getViewport({ scale });
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { alpha:false });
-    canvas.width = vp.width; canvas.height = vp.height;
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
-    imgEl.src = canvas.toDataURL('image/png');
-    imgEl.classList.remove('hidden');
-    URL.revokeObjectURL(url);
-  } catch (e){ console.warn('No se pudo renderizar miniatura PDF:', e); }
+// ===== File System Access API =====
+async function verifyPermission(handle,mode='readwrite'){ if(!handle) return false; const opts={mode};
+  if((await handle.queryPermission(opts))==='granted') return true;
+  if((await handle.requestPermission(opts))==='granted') return true;
+  return false;
+}
+async function pickFolder(){
+  if(!window.showDirectoryPicker){ alert('Tu navegador no soporta elegir carpeta. Usa Chrome/Edge.'); return; }
+  try{ const dir=await window.showDirectoryPicker({id:'uploads-folder'});
+    const ok=await verifyPermission(dir,'readwrite'); if(!ok) return;
+    store.dirHandle=dir; await saveDirHandle(dir); $('#folder-status').textContent='Carpeta conectada ✔';
+    // Garantiza que exista index.json
+    await ensureManifestFile();
+  }catch(e){ console.error(e); }
 }
 
-// Cards
-function createCard(entry){
-  const tpl = $('#card-template'); const node = tpl.content.firstElementChild.cloneNode(true);
-  const img = $('[data-role="thumb"]', node);
-  const pdfCover = $('[data-role="pdfcover"]', node);
-  const title = $('[data-role="title"]', node);
-  const meta = $('[data-role="meta"]', node);
-  const btnPrev = $('[data-action="preview"]', node);
-  const btnEdit = $('[data-action="edit"]', node);
-  const btnDel = $('[data-action="delete"]', node);
-  const aDownload = $('[data-role="download"]', node);
+async function ensureManifestFile(){
+  if(!store.dirHandle) return;
+  const ok=await verifyPermission(store.dirHandle,'readwrite'); if(!ok) return;
+  try{ await store.dirHandle.getFileHandle('index.json'); } // existe
+  catch{ // crearlo vacío
+    const f=await store.dirHandle.getFileHandle('index.json',{create:true});
+    const w=await f.createWritable(); await w.write(JSON.stringify({items:[]},null,2)); await w.close();
+  }
+}
 
-  title.textContent = entry.title || entry.name;
-  meta.textContent = `${entry.type.toUpperCase()} · ${fmtBytes(entry.size)} · Semana ${entry.week}`;
+async function readLocalManifest(){
+  if(!store.dirHandle) return {items:[]};
+  const ok=await verifyPermission(store.dirHandle,'read'); if(!ok) return {items:[]};
+  try{ const fh=await store.dirHandle.getFileHandle('index.json'); const f=await fh.getFile(); const txt=await f.text(); return JSON.parse(txt||'{}'); }
+  catch(e){ return {items:[]}; }
+}
 
-  idbKeyval.get(dbFileKey(entry.id)).then(async (blob) => {
-    if(!blob) return;
-    const url = URL.createObjectURL(blob);
-    aDownload.href = url;
-    aDownload.download = entry.name;
-    if(entry.type === 'image'){
-      img.src = url; img.classList.remove('hidden');
-    } else {
-      // Generar miniatura del primer folio del PDF
-      await renderPdfThumbnailToImg(blob, img);
-      if(img.src){ pdfCover.classList.add('hidden'); } else { pdfCover.classList.remove('hidden'); }
-    }
-  });
+async function writeLocalManifest(manifest){
+  if(!store.dirHandle) return;
+  const ok=await verifyPermission(store.dirHandle,'readwrite'); if(!ok) return;
+  const fh=await store.dirHandle.getFileHandle('index.json',{create:true});
+  const w=await fh.createWritable(); await w.write(JSON.stringify(manifest,null,2)); await w.close();
+}
 
-  btnPrev.addEventListener('click', async () => {
-    const blob = await idbKeyval.get(dbFileKey(entry.id));
-    if(!blob) return;
-    const url = URL.createObjectURL(blob);
-    const cont = $('#preview-container');
-    cont.innerHTML='';
-    if(entry.type === 'image'){
-      const im = document.createElement('img');
-      im.src = url; im.alt = entry.title; im.className = 'w-full h-full object-contain bg-black';
-      cont.appendChild(im);
-    } else {
-      const ifr = document.createElement('iframe');
-      ifr.src = url; ifr.className = 'w-full h-full';
-      cont.appendChild(ifr);
-    }
+async function saveFileToFolder(file, filename){
+  if(!store.dirHandle) return;
+  const ok=await verifyPermission(store.dirHandle,'readwrite'); if(!ok) return;
+  const fh=await store.dirHandle.getFileHandle(filename,{create:true});
+  const w=await fh.createWritable(); await w.write(file); await w.close();
+}
+
+// ===== Thumbnails =====
+async function renderPdfThumb(url, imgEl){
+  try{ const pdf=await pdfjsLib.getDocument({url}).promise; const page=await pdf.getPage(1);
+    const vp=page.getViewport({scale:1.0}); const scale=Math.min(640/vp.width,1.5); const v=page.getViewport({scale});
+    const c=document.createElement('canvas'); c.width=v.width; c.height=v.height;
+    await page.render({canvasContext:c.getContext('2d',{alpha:false}), viewport:v}).promise;
+    imgEl.src=c.toDataURL('image/png'); imgEl.classList.remove('hidden');
+  }catch(e){ /* deja icono PDF */ }
+}
+
+// ===== Cards =====
+function createCard(item){
+  const tpl=$('#card-template'); const node=tpl.content.firstElementChild.cloneNode(true);
+  const img=$('[data-role=thumb]',node); const pdfCover=$('[data-role=pdfcover]',node);
+  const title=$('[data-role=title]',node); const meta=$('[data-role=meta]',node);
+  const btnPrev=$('[data-action=preview]',node); const aDownload=$('[data-role=download]',node);
+
+  title.textContent=item.title||item.name; meta.textContent=`${item.type.toUpperCase()} · Semana ${item.week}`;
+  aDownload.href=item.url; aDownload.download=item.name;
+
+  if(item.type==='image'){ img.src=item.url; img.onload=()=>img.classList.remove('hidden'); }
+  else { renderPdfThumb(item.url,img).then(()=>{ if(!img.src) pdfCover.classList.remove('hidden'); }); }
+
+  btnPrev.onclick=()=>{ const cont=$('#preview-container'); cont.innerHTML='';
+    if(item.type==='image'){ const im=new Image(); im.src=item.url; im.className='w-full h-full object-contain bg-black'; cont.appendChild(im); }
+    else { const ifr=document.createElement('iframe'); ifr.src=item.url; ifr.className='w-full h-full'; cont.appendChild(ifr); }
     openModal($('#modal-preview'));
-  });
-
-  btnEdit.addEventListener('click', () => openEdit(entry));
-  btnDel.addEventListener('click', () => deleteEntry(entry.id));
-
-  btnEdit.classList.toggle('hidden', !store.isAdmin);
-  btnDel.classList.toggle('hidden', !store.isAdmin);
+  };
 
   return node;
 }
 
-// Accordion
+// ===== Render =====
 function renderAccordion(){
-  const acc = $('#weeks-accordion'); acc.innerHTML = '';
+  const acc=$('#weeks-accordion'); acc.innerHTML='';
   for(let w=1; w<=16; w++){
-    const section = document.createElement('section');
-    section.className = 'card p-0';
+    const sec=document.createElement('section'); sec.className='card p-0';
+    const head=document.createElement('button'); head.className='accordion-btn w-full flex items-center justify-between p-4';
+    const items=store.repoEntries.filter(e=>+e.week===w);
+    head.innerHTML=`<div class="flex items-center gap-3"><span class="tag">Semana ${w}</span><span class="text-sm text-slate-400">${items.length} elementos</span></div><span>▸</span>`;
+    const panel=document.createElement('div'); panel.className='accordion-panel px-4 pb-4';
+    const list=document.createElement('div'); list.className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4';
 
-    const header = document.createElement('button');
-    header.className = 'accordion-btn w-full flex items-center justify-between p-4';
-    const count = store.entries.filter(e=>+e.week===w).length;
-    header.innerHTML = `<div class="flex items-center gap-3"><span class="tag">Semana ${w}</span><span class="text-sm text-slate-400">${count} elementos</span></div><span>▸</span>`;
+    if(items.length===0){ const empty=document.createElement('div'); empty.className='text-sm text-slate-400 border border-dashed border-white/10 rounded-xl p-6 text-center'; empty.textContent='Sin elementos aún'; list.appendChild(empty); }
+    else { items.forEach(it=>list.appendChild(createCard(it))); }
 
-    const panel = document.createElement('div');
-    panel.className = 'accordion-panel px-4 pb-4';
-
-    const list = document.createElement('div');
-    list.className = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4';
-    store.entries.filter(e=>+e.week===w).sort((a,b)=>b.createdAt-a.createdAt).forEach(e => list.appendChild(createCard(e)));
-    if(list.children.length===0){
-      const empty = document.createElement('div');
-      empty.className = 'text-sm text-slate-400 border border-dashed border-white/10 rounded-xl p-6 text-center';
-      empty.textContent = 'Sin elementos aún';
-      list.appendChild(empty);
-    }
     panel.appendChild(list);
-
-    header.addEventListener('click', () => {
-      const open = panel.classList.toggle('open');
-      header.querySelector('span:last-child').textContent = open ? '▾' : '▸';
-    });
-
-    section.appendChild(header);
-    section.appendChild(panel);
-    acc.appendChild(section);
+    head.onclick=()=>{ const open=panel.classList.toggle('open'); head.querySelector('span:last-child').textContent=open?'▾':'▸'; };
+    sec.appendChild(head); sec.appendChild(panel); acc.appendChild(sec);
   }
 }
 
-// CRUD
+// ===== CRUD + Auto actualización de index.json local =====
 async function addEntry({title, week, file}){
-  const id = crypto.randomUUID();
-  const type = file.type.startsWith('image/') ? 'image' : 'pdf';
-  const meta = { id, title: title || file.name, week: Number(week), type, name: file.name, size: file.size, createdAt: Date.now() };
-  store.entries.push(meta);
-  await idbKeyval.set(dbFileKey(id), file);
-  await persistEntries();
-  await maybeSaveToFolder(file, meta.name);
-  renderAccordion();
-}
+  const id=crypto.randomUUID(); const type=file.type.startsWith('image/')?'image':'pdf';
+  const meta={id,title:title||file.name,week:+week,type,name:file.name,size:file.size,createdAt:Date.now()};
+  store.entries.push(meta); await idbKeyval.set(dbFileKey(id),file); await persistEntries();
 
-async function deleteEntry(id){
-  if(!confirm('¿Eliminar este elemento?')) return;
-  store.entries = store.entries.filter(e=>e.id!==id);
-  await idbKeyval.del(dbFileKey(id));
-  await persistEntries();
-  renderAccordion();
-}
-
-function openEdit(entry){
-  const newTitle = prompt('Nuevo título:', entry.title) ?? entry.title;
-  let newWeek = Number(prompt('Nueva semana (1-16):', entry.week) ?? entry.week);
-  if(!(newWeek>=1 && newWeek<=16)) newWeek = entry.week;
-  const i = store.entries.findIndex(x=>x.id===entry.id);
-  if(i>=0){ store.entries[i].title = newTitle; store.entries[i].week = newWeek; persistEntries().then(renderAccordion); }
-}
-
-// File System Access API
-async function verifyPermission(handle, mode='readwrite'){
-  if(!handle) return false;
-  const opts = { mode };
-  if((await handle.queryPermission(opts)) === 'granted') return true;
-  if((await handle.requestPermission(opts)) === 'granted') return true;
-  return false;
-}
-
-async function pickFolder(){
-  if(!window.showDirectoryPicker){
-    alert('Tu navegador no soporta la API para guardar en carpeta local. Usa Chrome/Edge recientes.');
-    return;
+  // Si hay carpeta conectada, guardamos el archivo y actualizamos index.json automáticamente
+  if(store.dirHandle){
+    await saveFileToFolder(file, meta.name);
+    const manifest = await readLocalManifest();
+    // Actualiza o inserta
+    const idx = (manifest.items||[]).findIndex(x=>x.name===meta.name);
+    const item = { title: meta.title, week: meta.week, type: meta.type, name: meta.name, url: `uploads/${meta.name}` };
+    if(idx>=0) manifest.items[idx]=item; else (manifest.items||(manifest.items=[])).push(item);
+    await writeLocalManifest(manifest);
   }
-  try{
-    const dir = await window.showDirectoryPicker({id:'portafolio-semanas'});
-    const ok = await verifyPermission(dir, 'readwrite');
-    if(ok){
-      store.dirHandle = dir;
-      await saveDirHandle(dir);
-      $('#folder-status').textContent = 'Carpeta conectada ✔';
-    } else {
-      $('#folder-status').textContent = 'Permiso denegado';
-    }
-  }catch(e){ console.error(e); }
+  alert('Archivo guardado. Si conectaste uploads/, ya se actualizó index.json. Recuerda hacer git add/commit/push.');
 }
 
-async function maybeSaveToFolder(file, filename){
-  try{
-    if(!store.dirHandle) return;
-    const ok = await verifyPermission(store.dirHandle, 'readwrite');
-    if(!ok) return;
-    const fileHandle = await store.dirHandle.getFileHandle(filename, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(file);
-    await writable.close();
-  }catch(e){ console.warn('No se pudo guardar en carpeta local:', e); }
-}
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', async ()=>{
+  ensureWeekOptions(document.getElementById('week-select'));
+  await loadEntries(); await loadDirHandle(); await loadRepoManifest(); renderAccordion();
 
-// Init
-document.addEventListener('DOMContentLoaded', async () => {
-  ensureWeekOptions($('#week-select'));
+  store.isAdmin = localStorage.getItem('isAdmin')==='1'; updateAuthUI();
+  $$('button[data-nav]').forEach(b=>b.onclick=()=>showView(b.dataset.nav)); showView('portfolio');
 
-  await loadEntries();
-  await loadDirHandle();
-  renderAccordion();
+  // Login
+  document.getElementById('btn-login').onclick=()=>openModal(document.getElementById('modal-login'));
+  document.getElementById('btn-logout').onclick=()=>{ store.isAdmin=false; localStorage.removeItem('isAdmin'); updateAuthUI(); };
+  document.getElementById('login-form').onsubmit=(e)=>{ e.preventDefault(); const u=$('#login-user').value.trim(); const p=$('#login-pass').value.trim(); if(u==='admin'&&p==='admin123'){store.isAdmin=true; localStorage.setItem('isAdmin','1'); updateAuthUI(); closeModal(document.getElementById('modal-login'));} else alert('Credenciales inválidas'); };
 
-  store.isAdmin = localStorage.getItem('isAdmin') === '1';
-  updateAuthUI();
-  if(store.dirHandle){ $('#folder-status').textContent = 'Carpeta conectada ✔'; }
-
-  $$('button[data-nav]').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.nav)));
-  showView('portfolio');
-
-  $('#btn-login').addEventListener('click', () => openModal($('#modal-login')));
-  $('#btn-logout').addEventListener('click', () => { store.isAdmin=false; localStorage.removeItem('isAdmin'); updateAuthUI(); });
-  $('#login-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const user = $('#login-user').value.trim();
-    const pass = $('#login-pass').value.trim();
-    if(user === 'admin' && pass === 'admin123'){
-      store.isAdmin = true; localStorage.setItem('isAdmin','1'); updateAuthUI(); closeModal($('#modal-login'));
-    } else alert('Credenciales inválidas');
-  });
-
-  $('#upload-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const title = $('#title-input').value.trim();
-    const week = $('#week-select').value;
-    const file = $('#file-input').files[0];
-    if(!file || !week){ alert('Completa título, semana y archivo.'); return; }
-    await addEntry({ title, week, file });
+  // Upload
+  document.getElementById('upload-form').onsubmit=async(e)=>{ e.preventDefault();
+    const title=$('#title-input').value.trim(); const week=$('#week-select').value; const file=$('#file-input').files[0];
+    if(!title||!week||!file) return alert('Completa título, semana y archivo.');
+    await addEntry({title,week,file});
     e.target.reset(); $('#week-select').value='';
-  });
+  };
 
-  $('#btn-pick-folder').addEventListener('click', pickFolder);
+  // Folder picker
+  document.getElementById('btn-pick-folder').onclick=pickFolder;
 
-  $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b => b.addEventListener('click', (ev) => {
-    closeModal(ev.target.closest('.modal-backdrop'));
-  }));
-  $$('#modal-login, #modal-preview').forEach(m => m.addEventListener('click', (e)=>{
-    if(e.target.classList.contains('modal-backdrop')) closeModal(e.target);
-  }));
+  // Close modals
+  $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b=>b.onclick=(ev)=>closeModal(ev.target.closest('.modal-backdrop')));
+  $$('#modal-login, #modal-preview').forEach(m=>m.onclick=(e)=>{ if(e.target.classList.contains('modal-backdrop')) closeModal(e.target); });
 });
