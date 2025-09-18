@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portafolio | Sebastian Limaylla – Arquitectura de Software</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js"></script>
+  <!-- PDF.js para miniaturas de PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    if (window['pdfjsLib']) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    }
+  </script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="glass sticky top-0 z-40 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-300 flex items-center justify-center font-black">SL</div>
+        <div>
+          <h1 class="text-base font-semibold">Sebastian Limaylla</h1>
+          <p class="text-xs text-slate-400">Arquitectura de Software · Portafolio académico</p>
+        </div>
+      </div>
+      <nav class="flex items-center gap-2">
+        <button class="btn btn-ghost" data-nav="portfolio">Portafolio</button>
+        <button class="btn btn-ghost" data-nav="profile">Perfil</button>
+        <span class="w-px h-6 bg-white/10 mx-1"></span>
+        <button class="btn btn-primary" id="btn-login">Iniciar sesión</button>
+        <button class="btn btn-ghost hidden" id="btn-logout">Cerrar sesión</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-7xl mx-auto px-4 lg:px-6 py-8">
+    <!-- PORTFOLIO / DASHBOARD -->
+    <section id="view-portfolio" class="space-y-6">
+      <div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
+        <div class="flex-1">
+          <h2 class="text-2xl font-semibold">Dashboard principal</h2>
+          <p class="text-sm text-slate-400">Organiza tus entregas por semanas (1–16). Sube PDFs e imágenes, edítalos y bórralos.</p>
+        </div>
+        <div id="admin-tools" class="hidden card w-full lg:w-auto">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="tag">Admin</span>
+            <h3 class="font-semibold">Gestión</h3>
+          </div>
+          <div class="flex items-center gap-2 mb-3">
+            <button id="btn-pick-folder" class="btn btn-ghost text-xs">Elegir carpeta destino (opcional)</button>
+            <span id="folder-status" class="text-xs text-slate-400">Sin carpeta</span>
+          </div>
+          <form id="upload-form" class="grid lg:grid-cols-5 gap-3">
+            <input required id="title-input" type="text" placeholder="Título del archivo" class="lg:col-span-2 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2" />
+            <select required id="week-select" class="rounded-xl bg-white/5 border border-white/10 px-4 py-2"></select>
+            <input required id="file-input" type="file" accept="image/*,application/pdf" class="lg:col-span-2 w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white hover:file:bg-blue-700" />
+            <button class="btn btn-primary lg:col-span-5 justify-center" type="submit">Subir</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Weeks Accordion -->
+      <div id="weeks-accordion" class="space-y-3"></div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="view-profile" class="hidden space-y-6">
+      <div class="card p-6">
+        <div class="flex flex-col lg:flex-row gap-6">
+          <div class="flex-1">
+            <h2 class="text-2xl font-semibold">Sebastian Limaylla</h2>
+            <p class="text-slate-400">Creador de la página · Estudiante de Arquitectura de Software</p>
+            <div class="mt-4 grid sm:grid-cols-2 gap-3">
+              <div class="card">
+                <div class="text-sm text-slate-400">Curso</div>
+                <div class="font-semibold">Arquitectura de Software</div>
+              </div>
+              <div class="card">
+                <div class="text-sm text-slate-400">Institución</div>
+                <div class="font-semibold">Facultad de Ingeniería de Sistemas</div>
+              </div>
+              <div class="card">
+                <div class="text-sm text-slate-400">Ciclo</div>
+                <div class="font-semibold">2025-II</div>
+              </div>
+              <div class="card">
+                <div class="text-sm text-slate-400">Tecnologías</div>
+                <div class="font-semibold">HTML · CSS (Tailwind) · JS · IndexedDB</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Login Modal -->
+  <div id="modal-login" class="modal-backdrop">
+    <div class="modal">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-lg font-semibold">Iniciar sesión (Admin)</h3>
+        <button class="btn btn-ghost" data-close>✕</button>
+      </div>
+      <form id="login-form" class="space-y-3">
+        <input id="login-user" type="text" placeholder="Usuario" class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2" value="admin" />
+        <input id="login-pass" type="password" placeholder="Contraseña" class="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2" />
+        <p class="text-xs text-slate-400">Credenciales demo: <b>admin / admin123</b></p>
+        <button class="btn btn-primary w-full" type="submit">Entrar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="modal-preview" class="modal-backdrop">
+    <div class="modal max-w-4xl">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-lg font-semibold">Vista previa</h3>
+        <button class="btn btn-ghost" data-close>✕</button>
+      </div>
+      <div id="preview-container" class="h-[70vh] rounded-xl overflow-hidden bg-white/5 border border-white/10"></div>
+    </div>
+  </div>
+
+  <!-- Templates -->
+  <template id="card-template">
+    <div class="card group">
+      <div class="aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center relative">
+        <img class="w-full h-full object-cover hidden" data-role="thumb" alt="thumb" />
+        <div class="absolute inset-0 hidden items-center justify-center text-4xl" data-role="pdfcover">📄</div>
+      </div>
+      <div class="mt-3 flex items-start justify-between gap-3">
+        <div>
+          <div class="font-semibold line-clamp-1" data-role="title"></div>
+          <div class="text-xs text-slate-400 mt-0.5" data-role="meta"></div>
+        </div>
+        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button class="btn btn-ghost px-2 py-1 text-xs" data-action="preview">Ver</button>
+          <a class="btn btn-ghost px-2 py-1 text-xs" data-role="download" download>Descargar</a>
+          <button class="btn btn-ghost px-2 py-1 text-xs hidden" data-action="edit">Editar</button>
+          <button class="btn btn-danger px-2 py-1 text-xs hidden" data-action="delete">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
