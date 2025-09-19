@@ -20,6 +20,34 @@
       "type": "image",
       "name": "mapamental.jpg",
       "url": "uploads/mapamental.jpg"
+    },
+    {
+      "title": "Semana 2 Actividad",
+      "week": 2,
+      "type": "pdf",
+      "name": "Actividad02_ArquitecturaSw_2025.pdf",
+      "url": "uploads/Actividad02_ArquitecturaSw_2025.pdf"
+    },
+    {
+      "title": "Semana 2",
+      "week": 2,
+      "type": "pdf",
+      "name": "Sesion02_ArquitecturaSw_2025.pdf",
+      "url": "uploads/Sesion02_ArquitecturaSw_2025.pdf"
+    },
+    {
+      "title": "Actividad 2",
+      "week": 2,
+      "type": "pdf",
+      "name": "Actividad 2 y 3_ Diseño de una Arquitectura Basada en Estándares (Biblioteca Digital).pdf",
+      "url": "uploads/Actividad 2 y 3_ Diseño de una Arquitectura Basada en Estándares (Biblioteca Digital).pdf"
+    },
+    {
+      "title": "Actividad 1",
+      "week": 2,
+      "type": "pdf",
+      "name": "Actividad 1.pdf",
+      "url": "uploads/Actividad 1.pdf"
     }
   ]
 }
