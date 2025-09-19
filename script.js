@@ -161,6 +161,39 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     await addEntry({title,week,file});
     e.target.reset(); $('#week-select').value='';
   };
+/* Perfil moderno */
+.profile-hero { position: relative; }
+.profile-cover {
+  height: 140px;
+  background: radial-gradient(1200px 400px at -10% -40%, rgba(79,111,179,.35), rgba(35,53,93,.15)),
+              linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0));
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.profile-avatar {
+  width: 96px; height: 96px; border-radius: 1.25rem;
+  object-fit: cover; border: 2px solid rgba(255,255,255,0.12);
+  margin-top: -56px; background: #101726;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+.chip {
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.3rem .7rem; border-radius:9999px;
+  font-size:.75rem; font-weight:700;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1);
+}
+.chip-primary {
+  background:#2e4478; color:#fff; border-color:transparent;
+}
+.btn-social { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); }
+.btn-social:hover { background: rgba(255,255,255,0.12); }
+
+.timeline-item {
+  display:flex; gap:.75rem; align-items:flex-start; position:relative;
+}
+.timeline-item .dot {
+  width:.6rem; height:.6rem; border-radius:9999px;
+  background:#4f6fb3; margin-top:.35rem; box-shadow:0 0 0 4px rgba(79,111,179,.18);
+}
 
   // Folder picker
   document.getElementById('btn-pick-folder').onclick=pickFolder;
