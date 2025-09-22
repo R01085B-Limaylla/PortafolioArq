@@ -62,13 +62,16 @@
 
   <!-- Main -->
   <main class="with-sidebar max-w-7xl mx-auto px-4 lg:px-6 py-8" id="app-main">
-    <!-- PORTFOLIO -->
-    <section id="view-portfolio" class="space-y-6">
-      <div class="flex items-center justify-between gap-4">
-        <div>
-          <h2 class="text-2xl font-semibold">Dashboard</h2>
-         
-        </div>
+  <!-- PORTFOLIO -->
+<section id="view-portfolio" class="space-y-6">
+  <div class="flex items-center justify-between gap-4">
+    <h2 class="text-2xl font-semibold">Dashboard</h2>
+  </div>
+
+  <!-- ✨ Grid visible para TODOS (sin login) -->
+  <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+        
         <div id="admin-tools" class="hidden card">
           <!-- Grid central donde se muestran los archivos de la semana seleccionada -->
 <div id="files-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
