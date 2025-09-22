@@ -19,10 +19,20 @@ function ensureWeekOptions(sel){ sel.innerHTML='<option value="" disabled select
 function showView(name){
   $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
   $('#view-profile').classList.toggle('hidden', name !== 'profile');
-  markActiveNav(name);
+
+  // marcar nav activo
+  $$('button[data-nav]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.nav === name);
+    if (b.dataset.nav === name) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
+
+  // mostrar barra semanas solo en Portafolio
   toggleSecondSidebar(name === 'portfolio');
-  if (name === 'portfolio') { openWeek(store.currentWeek || 1); }
+
+  // siempre abrir una semana cuando entras a Portafolio
+  if (name === 'portfolio') openWeek(store.currentWeek || 1);
 }
+
 
 function markActiveNav(name){
   $$('button[data-nav]').forEach(b=>{
@@ -201,6 +211,30 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await loadEntries();
 await loadDirHandle();
 await loadRepoManifest();
+
+document.addEventListener('DOMContentLoaded', async ()=>{
+  ensureWeekOptions(document.getElementById('week-select'));
+
+  await loadEntries();
+  await loadDirHandle();
+  await loadRepoManifest();
+
+  // ✨ construir botones de semanas y mostrar semana 1 para todos
+  buildWeeksSidebar();
+  openWeek(1);
+
+  // (si tienes aún renderAccordion() del diseño viejo, puedes quitarlo u ocultarlo)
+  // renderAccordion();
+
+  store.isAdmin = localStorage.getItem('isAdmin')==='1';
+  updateAuthUI();
+
+  $$('button[data-nav]').forEach(b=>b.onclick=()=>showView(b.dataset.nav));
+  showView('portfolio');
+
+  // ... resto: login, upload, picker, etc.
+});
+
 
 // construir barra secundaria (Semana 1..16) y abrir la semana actual (o 1)
 buildWeeksSidebar();

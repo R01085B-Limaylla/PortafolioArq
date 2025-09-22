@@ -494,3 +494,9 @@ button[data-nav].active{ background: rgba(255,255,255,.10); border:1px solid var
 
 /* Suaviza cambio de padding cuando aparece la 2da barra */
 #app-main{ transition: padding-left .22s ease; }
+
+#files-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
