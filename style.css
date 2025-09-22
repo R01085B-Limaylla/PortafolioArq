@@ -11,3 +11,473 @@ html, body { background: #0b0f19; color: #e5e7eb; font-family: Inter, system-ui,
 .accordion-btn { width:100%; text-align:left; }
 .accordion-panel { display:none; }
 .accordion-panel.open { display:block; }
+
+/* Perfil moderno */
+.profile-hero { position: relative; }
+.profile-cover {
+  height: 140px;
+  background: radial-gradient(1200px 400px at -10% -40%, rgba(79,111,179,.35), rgba(35,53,93,.15)),
+              linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0));
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.profile-avatar {
+  width: 96px; height: 96px; border-radius: 1.25rem;
+  object-fit: cover; border: 2px solid rgba(255,255,255,0.12);
+  margin-top: -56px; background: #101726;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+.chip {
+  display:inline-flex; align-items:center; gap:.4rem;
+  padding:.3rem .7rem; border-radius:9999px;
+  font-size:.75rem; font-weight:700;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1);
+}
+.chip-primary {
+  background:#2e4478; color:#fff; border-color:transparent;
+}
+.btn-social { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); }
+.btn-social:hover { background: rgba(255,255,255,0.12); }
+
+.timeline-item {
+  display:flex; gap:.75rem; align-items:flex-start; position:relative;
+}
+.timeline-item .dot {
+  width:.6rem; height:.6rem; border-radius:9999px;
+  background:#4f6fb3; margin-top:.35rem; box-shadow:0 0 0 4px rgba(79,111,179,.18);
+}
+
+/* ===== THEME AZUL GLASS ===== */
+:root{
+  --bg-1:#0b1226;
+  --bg-2:#0e1a3a;
+  --bg-3:#1a2b57;
+  --card:#111a33cc;
+  --border:rgba(140,170,255,.16);
+  --ring:rgba(80,140,255,.35);
+  --txt:#e8eeff;
+  --sub:#a9b6dc;
+  --pri:#3759d6;
+  --pri-2:#4f6fb3;
+}
+
+/* Fondo aurora */
+html, body{
+  background:
+    radial-gradient(60% 80% at 0% 100%, rgba(79,111,179,.25), transparent 60%),
+    radial-gradient(60% 80% at 100% 0%, rgba(67,102,208,.25), transparent 60%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  color: var(--txt);
+}
+
+/* Header glass */
+.glass{
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0,0,0,.25);
+  backdrop-filter: blur(14px) saturate(120%);
+}
+
+/* Tarjetas / superficies */
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.06) inset,
+    0 10px 30px rgba(30,50,100,.35);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+
+/* Botones */
+.btn{
+  border-radius: 14px;
+  padding: .55rem 1rem;
+  font-weight: 700;
+}
+.btn-primary{
+  background: linear-gradient(180deg, var(--pri), #2948b8);
+  color: white;
+  box-shadow: 0 8px 20px rgba(55,89,214,.35);
+}
+.btn-primary:hover{ filter: brightness(1.05); }
+.btn-ghost{
+  color: var(--txt);
+  border: 1px solid transparent;
+}
+.btn-ghost:hover{
+  background: rgba(255,255,255,.06);
+  border-color: var(--border);
+}
+
+/* Estado activo en menú superior */
+.btn.active,
+button[data-nav].active{
+  background: rgba(255,255,255,.10);
+  border: 1px solid var(--border);
+}
+
+/* Acordeón (semanas) estilo "tabla suave" */
+.accordion-btn{
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  transition: background .2s, border-color .2s;
+}
+.accordion-btn:hover{
+  background: rgba(255,255,255,.06);
+}
+.accordion-panel{
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+}
+
+/* Mini “chips” */
+.tag{
+  background: rgba(120,160,255,.12);
+  border-color: rgba(120,160,255,.22);
+  color: #dce6ff;
+  font-weight: 700;
+}
+
+/* Modal */
+.modal{
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.45);
+}
+
+/* Perfil moderno (lo que ya agregaste, con paleta azul) */
+.profile-cover{
+  height: 160px;
+  background:
+    radial-gradient(1200px 400px at -10% -40%, rgba(79,111,179,.45), rgba(35,53,93,.18)),
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0));
+  border-bottom: 1px solid var(--border);
+}
+.profile-avatar{
+  width: 104px; height: 104px; border-radius: 22px;
+  object-fit: cover; border: 2px solid rgba(200,220,255,.25);
+  margin-top: -62px; background: #0f1832;
+  box-shadow: 0 14px 30px rgba(0,0,0,.35);
+}
+.chip{ background: rgba(120,160,255,.14); border:1px solid rgba(120,160,255,.24); color:#e8efff; }
+.chip-primary{ background: var(--pri); color:#fff; border-color: transparent; }
+.btn-social{ background: rgba(255,255,255,.06); border:1px solid var(--border); }
+.btn-social:hover{ background: rgba(255,255,255,.12); }
+
+/* Tarjetas de elementos (mini grid) */
+#weeks-accordion .card .group > .aspect-video{
+  border-radius: 14px;
+  background: rgba(255,255,255,.04);
+  border: 1px dashed rgba(200,220,255,.16);
+}
+
+/* Tipografía secundaria */
+p, .text-slate-400{ color: var(--sub) !important; }
+
+/* ===== LAYOUT con sidebar ===== */
+:root{
+  --sb-w: 280px;
+  --bg-1:#0b1226; --bg-2:#0e1a3a;
+  --border:rgba(140,170,255,.16); --txt:#e8eeff; --sub:#a9b6dc; --pri:#3759d6;
+}
+
+html, body{
+  background:
+    radial-gradient(60% 80% at 0% 100%, rgba(79,111,179,.25), transparent 60%),
+    radial-gradient(60% 80% at 100% 0%, rgba(67,102,208,.25), transparent 60%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  color: var(--txt);
+}
+
+/* Sidebar glass */
+.sidebar{
+  position: fixed; inset: 0 auto 0 0; width: var(--sb-w); height: 100vh;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border-right: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0,0,0,.25);
+  backdrop-filter: blur(14px) saturate(120%);
+  display: flex; flex-direction: column; gap: 1rem; padding: 1rem;
+  z-index: 40;
+}
+.with-sidebar{ padding-left: calc(var(--sb-w) + 1.5rem); }
+
+/* Marca UPLA */
+.sidebar__brand{
+  display: flex; align-items: center; gap: .8rem; padding: .25rem .25rem .75rem;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.sidebar__brand img{
+  width: 44px; height: 44px; object-fit: contain; border-radius: 10px;
+  background: rgba(255,255,255,.08);
+}
+.sidebar__title{ font-size: 1.05rem; line-height: 1.1; font-weight: 800; letter-spacing: .2px; }
+.sidebar__subtitle{ font-size: .75rem; color: var(--sub); margin-top: .15rem; }
+
+/* Nav */
+.sidebar__nav{ display: grid; gap: .5rem; margin-top: .5rem; }
+.sidebar__icon{ width: 1.35rem; display:inline-flex; justify-content:center; }
+.btn{ border-radius: 12px; padding: .6rem .8rem; font-weight: 700; }
+.btn-ghost{ color: var(--txt); border: 1px solid transparent; text-align: left; }
+.btn-ghost:hover{ background: rgba(255,255,255,.06); border-color: var(--border); }
+.btn-primary{
+  background: linear-gradient(180deg, var(--pri), #2948b8); color: #fff;
+  box-shadow: 0 8px 20px rgba(55,89,214,.35);
+}
+.btn.active, button[data-nav].active{ background: rgba(255,255,255,.10); border: 1px solid var(--border); }
+
+.sidebar__footer{ margin-top: auto; }
+
+/* Card / Modal (coincide con lo que ya tienes) */
+.card{
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+  border: 1px solid var(--border); border-radius: 18px; padding: 1rem;
+  box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 10px 30px rgba(30,50,100,.35);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+.modal{ background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+  border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+.tag{ background: rgba(120,160,255,.12); border-color: rgba(120,160,255,.22); color: #dce6ff; font-weight: 700; }
+
+/* Acordeón */
+.accordion-btn{ padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.06); }
+.accordion-btn:hover{ background: rgba(255,255,255,.06); }
+.accordion-panel{ background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)); }
+
+/* Perfil (si usas la sección moderna previa) */
+.profile-cover{
+  height: 160px;
+  background: radial-gradient(1200px 400px at -10% -40%, rgba(79,111,179,.45), rgba(35,53,93,.18)),
+             linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0));
+  border-bottom: 1px solid var(--border);
+}
+.profile-avatar{
+  width:104px;height:104px;border-radius:22px;object-fit:cover;
+  border:2px solid rgba(200,220,255,.25);margin-top:-62px;background:#0f1832;box-shadow:0 14px 30px rgba(0,0,0,.35);
+}
+
+/* ===== Acordeón moderno (Semanas) ===== */
+.weeks .section { border: 1px solid rgba(140,170,255,.16); border-radius: 18px; overflow: hidden; }
+.weeks .hdr{
+  display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+  padding: 1rem 1.25rem; cursor:pointer;
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  transition: background .2s, border-color .2s, box-shadow .2s;
+}
+.weeks .hdr:hover{ background: rgba(255,255,255,.08); box-shadow: 0 6px 18px rgba(40,70,150,.25) inset; }
+.weeks .left { display:flex; align-items:center; gap:.6rem; }
+.weeks .badge { padding:.28rem .65rem; border-radius:9999px; font-weight:800; font-size:.75rem;
+  background: rgba(120,160,255,.14); color:#e8efff; border:1px solid rgba(120,160,255,.28); }
+.weeks .count { font-size:.8rem; color:#a9b6dc; }
+
+.weeks .chev {
+  width: 22px; height: 22px; border-radius: 8px;
+  display:grid; place-items:center;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(140,170,255,.16);
+  transition: transform .25s ease;
+}
+.weeks .panel{
+  max-height: 0; overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+  transition: max-height .35s ease;
+}
+.weeks .panel.open{ max-height: 1000px; }
+
+/* ===== Grid de cards ===== */
+.weeks .grid { padding: 1rem; display:grid; gap:1rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+.card.item{
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+  border: 1px solid rgba(140,170,255,.16);
+  box-shadow: 0 6px 24px rgba(30,50,100,.25);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.card.item:hover{
+  transform: translateY(-4px);
+  border-color: rgba(160,200,255,.35);
+  box-shadow: 0 12px 34px rgba(50,90,170,.35);
+}
+
+.item .thumb{
+  position:relative; overflow:hidden; border-radius: 12px;
+  background: rgba(255,255,255,.05); border: 1px dashed rgba(200,220,255,.16);
+  aspect-ratio: 16/9; display:flex; align-items:center; justify-content:center;
+}
+.item .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.item .toolbar{
+  position:absolute; right:.5rem; bottom:.5rem; display:flex; gap:.35rem; opacity:0;
+  transition: opacity .2s ease;
+}
+.card.item:hover .toolbar{ opacity:1; }
+.item .toolbar .btn{ padding:.3rem .55rem; border-radius: .6rem; font-size:.72rem; backdrop-filter: blur(6px); }
+.item .meta{ color:#a9b6dc; font-size:.78rem; margin-top:.35rem; }
+
+/* Estado vacío bonito */
+.empty {
+  color:#a9b6dc; text-align:center; border:1px dashed rgba(200,220,255,.18);
+  border-radius:14px; padding:2rem; background: rgba(255,255,255,.03);
+}
+
+/* Ajustes para tus elementos ya existentes */
+#weeks-accordion .card.group { background: transparent; border: none; padding:0; }
+#weeks-accordion .group > .aspect-video { display:none; } /* usamos nuestro .thumb */
+
+/* ===== Doble Sidebar ===== */
+:root{
+  --sb-w: 280px;        /* ancho sidebar principal */
+  --sb2-w: 220px;       /* ancho sidebar semanas */
+  --gap-main: 1.5rem;
+  --border: rgba(140,170,255,.16);
+  --txt:#e8eeff; --sub:#a9b6dc; --pri:#3759d6;
+}
+
+/* La principal ya la tienes como .sidebar */
+/* Sidebar 2 */
+.sidebar-2{
+  position: fixed; top:0; bottom:0; left: var(--sb-w); width: var(--sb2-w);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border-right: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(0,0,0,.20);
+  backdrop-filter: blur(12px) saturate(120%);
+  padding: 1rem; z-index: 39;
+  display: flex; flex-direction: column;
+}
+.sidebar2__head { border-bottom:1px solid rgba(255,255,255,.08); padding-bottom:.6rem; margin-bottom:.6rem; }
+.sidebar2__head h2 { font-weight: 800; letter-spacing:.2px; font-size: 1rem; }
+.sidebar2__head .muted { font-size:.75rem; color: var(--sub); }
+
+.sidebar2__nav{ display:grid; gap:.35rem; overflow:auto; padding-right:.25rem; }
+.sidebar2__nav .wk{
+  display:flex; align-items:center; gap:.5rem; width:100%;
+  padding:.5rem .65rem; border-radius:10px; border:1px solid transparent;
+  color:var(--txt); text-align:left; font-weight:700; font-size:.9rem;
+}
+.sidebar2__nav .wk .pill{
+  min-width: 2.2rem; height:1.6rem; border-radius:9999px;
+  display:grid; place-items:center; font-size:.8rem; font-weight:800;
+  background: rgba(120,160,255,.14); color:#e8efff; border:1px solid rgba(120,160,255,.28);
+}
+.sidebar2__nav .wk:hover{ background: rgba(255,255,255,.06); border-color: var(--border); }
+.sidebar2__nav .wk.active{ background: rgba(255,255,255,.10); border-color: var(--border); }
+
+/* Layout del main según sidebars */
+.with-sidebar{ padding-left: calc(var(--sb-w) + var(--gap-main)); }
+.with-sidebar.with-sidebar-2{ padding-left: calc(var(--sb-w) + var(--sb2-w) + var(--gap-main)); }
+
+/* Suaviza transición del main cuando aparece 2da barra (opcional) */
+#app-main{ transition: padding-left .2s ease; }
+
+/* Lista de archivos en la barra 2 */
+.sidebar2__files{
+  margin-top: .75rem;
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding-top: .75rem;
+  display: grid; gap: .35rem;
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+}
+.file-mini{
+  display:flex; align-items:center; gap:.6rem;
+  padding:.45rem .6rem; border-radius:10px;
+  border:1px solid transparent; color:#e8eeff;
+  background: rgba(255,255,255,.04);
+}
+.file-mini:hover{ background: rgba(255,255,255,.08); border-color: rgba(140,170,255,.16); }
+.file-mini .ico{
+  width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
+  background: rgba(255,255,255,.06); border:1px solid rgba(140,170,255,.16);
+  font-size:.9rem;
+}
+.file-mini .meta{ font-size:.74rem; color:#a9b6dc; }
+.file-mini .spacer{ flex:1; }
+.file-mini .act{
+  display:flex; gap:.35rem;
+}
+.file-mini .act a, .file-mini .act button{
+  font-size:.72rem; padding:.2rem .45rem; border-radius:.55rem;
+  background: rgba(255,255,255,.07); border:1px solid rgba(140,170,255,.16);
+  color:#e8eeff;
+}
+
+:root{
+  --sb-w: 280px;        /* ancho sidebar principal */
+  --sb2-w: 240px;       /* ancho sidebar semanas */
+  --gap: 1.5rem;
+  --border:rgba(140,170,255,.16);
+  --txt:#e8eeff; --sub:#a9b6dc; --pri:#3759d6;
+}
+
+/* Sidebar principal */
+.sidebar{
+  position: fixed; top:0; bottom:0; left:0; width: var(--sb-w);
+  display:flex; flex-direction:column; gap:1rem; padding:1rem; z-index:40;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(14px) saturate(120%);
+}
+.with-sidebar{ padding-left: calc(var(--sb-w) + var(--gap)); }
+.sidebar__brand{ display:flex; align-items:center; gap:.8rem; padding:.25rem .25rem .75rem; border-bottom:1px solid rgba(255,255,255,.08);}
+.sidebar__brand img{ width:44px; height:44px; object-fit:contain; border-radius:10px; background: rgba(255,255,255,.08); }
+.sidebar__title{ font-size: 1.05rem; line-height:1.1; font-weight:800; letter-spacing:.2px;}
+.sidebar__subtitle{ font-size:.75rem; color: var(--sub); margin-top:.15rem; }
+.sidebar__nav{ display:grid; gap:.5rem; margin-top:.5rem; }
+.sidebar__icon{ width: 1.35rem; display:inline-grid; place-items:center; }
+.sidebar__footer{ margin-top:auto; }
+button[data-nav].active{ background: rgba(255,255,255,.10); border:1px solid var(--border); border-radius:14px; }
+
+/* Sidebar 2 (Semanas) */
+.sidebar-2{
+  position: fixed; top:0; bottom:0; left: calc(var(--sb-w));
+  width: var(--sb2-w); padding:1rem; z-index:39;
+  border-left: 1px solid rgba(255,255,255,.04);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  transform: translateX(-10px); opacity: 0; pointer-events: none;
+  transition: transform .22s ease, opacity .22s ease;
+}
+.with-sidebar-2{ padding-left: calc(var(--sb-w) + var(--sb2-w) + var(--gap)); }
+.sidebar-2.show{ transform: translateX(0); opacity:1; pointer-events:auto; }
+
+.sidebar2__head{ display:flex; align-items:center; justify-content:space-between; gap:.6rem;
+  border-bottom:1px solid rgba(255,255,255,.08); padding-bottom:.6rem; margin-bottom:.6rem; }
+.sidebar2__head h2{ font-weight: 800; font-size:1rem; }
+.sidebar2__head .muted{ font-size:.75rem; color: var(--sub); }
+.sidebar2__head .left{ display:flex; align-items:baseline; gap:.5rem; }
+.chev{
+  width:22px; height:22px; border-radius:8px; display:grid; place-items:center;
+  background: rgba(255,255,255,.06); border: 1px solid var(--border); transition: transform .25s ease;
+}
+
+.sidebar2__nav{ display:grid; gap:.35rem; overflow:auto; padding-right:.25rem; max-height: 40vh; }
+.wk{
+  display:flex; align-items:center; gap:.5rem; width:100%;
+  padding:.5rem .65rem; border-radius:10px; border:1px solid transparent;
+  color:var(--txt); text-align:left; font-weight:700; font-size:.9rem;
+}
+.wk .pill{ min-width: 2rem; height:1.5rem; border-radius:9999px; display:grid; place-items:center; font-size:.78rem; font-weight:800;
+  background: rgba(120,160,255,.14); color:#e8efff; border:1px solid rgba(120,160,255,.28); }
+.wk:hover{ background: rgba(255,255,255,.06); border-color: var(--border); }
+.wk.active{ background: rgba(255,255,255,.10); border-color: var(--border); }
+
+.sidebar2__files{ margin-top: .75rem; border-top:1px solid rgba(255,255,255,.08); padding-top:.75rem; display:grid; gap:.35rem; max-height: calc(100vh - 260px); overflow:auto; }
+.file-mini{ display:flex; align-items:center; gap:.6rem; padding:.45rem .6rem; border-radius:10px; border:1px solid transparent; background: rgba(255,255,255,.04); color:#e8eeff; }
+.file-mini:hover{ background: rgba(255,255,255,.08); border-color: rgba(140,170,255,.16); }
+.file-mini .ico{ width:28px; height:28px; border-radius:8px; display:grid; place-items:center; background: rgba(255,255,255,.06); border:1px solid rgba(140,170,255,.16); }
+.file-mini .meta{ font-size:.74rem; color:#a9b6dc; }
+.file-mini .spacer{ flex:1; }
+.file-mini .act{ display:flex; gap:.35rem; }
+.file-mini .act a, .file-mini .act button{ font-size:.72rem; padding:.2rem .45rem; border-radius:.55rem; background: rgba(255,255,255,.07); border:1px solid rgba(140,170,255,.16); color:#e8eeff; }
+
+/* Grid items animados */
+.item{ transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.item:hover{ transform: translateY(-4px); box-shadow: 0 12px 34px rgba(50,90,170,.35); border-color: rgba(160,200,255,.35); }
+.thumb{ position:relative; overflow:hidden; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px dashed rgba(200,220,255,.16); aspect-ratio: 16/9;
+  display:flex; align-items:center; justify-content:center; }
+
+/* (Si te dejaste el acordeón viejo) lo ocultas: */
+#weeks-accordion { display: none !important; }
+
+/* Suaviza cambio de padding cuando aparece la 2da barra */
+#app-main{ transition: padding-left .22s ease; }

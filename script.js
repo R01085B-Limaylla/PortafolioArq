@@ -6,7 +6,7 @@ const dbEntriesKey='entries'; const keyDirHandle='dirHandle'; const dbFileKey=id
 const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.querySelectorAll(s)];
 const fmtBytes=b=>b<1024?b+' B':b<1024**2?(b/1024).toFixed(1)+' KB':b<1024**3?(b/1024**2).toFixed(1)+' MB':(b/1024**3).toFixed(1)+' GB';
 const openModal=el=>el.style.display='flex'; const closeModal=el=>el.style.display='none';
-const showView=v=>{ $('#view-portfolio').classList.toggle('hidden',v!=='portfolio'); $('#view-profile').classList.toggle('hidden',v!=='profile'); };
+
 const updateAuthUI=()=>{ $('#btn-login').classList.toggle('hidden',store.isAdmin); $('#btn-logout').classList.toggle('hidden',!store.isAdmin); $('#admin-tools').classList.toggle('hidden',!store.isAdmin); };
 
 async function persistEntries(){ await idbKeyval.set(dbEntriesKey, store.entries); }
@@ -15,6 +15,30 @@ async function saveDirHandle(handle){ try{ await idbKeyval.set(keyDirHandle, han
 async function loadDirHandle(){ try{ store.dirHandle = await idbKeyval.get(keyDirHandle) || null;}catch(e){} }
 
 function ensureWeekOptions(sel){ sel.innerHTML='<option value="" disabled selected>Semana…</option>'+Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join(''); }
+
+function showView(name){
+  $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
+  $('#view-profile').classList.toggle('hidden', name !== 'profile');
+  markActiveNav(name);
+  toggleSecondSidebar(name === 'portfolio');
+  if (name === 'portfolio') { openWeek(store.currentWeek || 1); }
+}
+
+function markActiveNav(name){
+  $$('button[data-nav]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.nav === name);
+    if (b.dataset.nav === name) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
+}
+function toggleSecondSidebar(show) {
+  const sb2 = $('#sidebar-weeks');
+  const main = $('#app-main');
+  if (!sb2 || !main) return;
+  sb2.classList.toggle('show', !!show);
+  sb2.style.display = show ? 'flex' : 'none';
+  main.classList.toggle('with-sidebar-2', !!show);
+}
+
 
 // ===== Manifest remoto =====
 async function loadRepoManifest(){
@@ -123,28 +147,65 @@ function renderAccordion(){
 }
 
 // ===== CRUD + Auto actualización de index.json local =====
-async function addEntry({title, week, file}){
-  const id=crypto.randomUUID(); const type=file.type.startsWith('image/')?'image':'pdf';
-  const meta={id,title:title||file.name,week:+week,type,name:file.name,size:file.size,createdAt:Date.now()};
-  store.entries.push(meta); await idbKeyval.set(dbFileKey(id),file); await persistEntries();
+async function addEntry({ title, week, file }) {
+  const id = crypto.randomUUID();
+  const type = file.type.startsWith('image/') ? 'image' : 'pdf';
+  const meta = {
+    id,
+    title: title || file.name,
+    week: +week,
+    type,
+    name: file.name,
+    size: file.size,
+    createdAt: Date.now()
+  };
 
-  // Si hay carpeta conectada, guardamos el archivo y actualizamos index.json automáticamente
-  if(store.dirHandle){
+  // Guarda copia en IndexedDB (local)
+  store.entries.push(meta);
+  await idbKeyval.set(dbFileKey(id), file);
+  await persistEntries();
+
+  // Si hay carpeta conectada, guarda el archivo físico y actualiza index.json
+  if (store.dirHandle) {
     await saveFileToFolder(file, meta.name);
+
     const manifest = await readLocalManifest();
-    // Actualiza o inserta
-    const idx = (manifest.items||[]).findIndex(x=>x.name===meta.name);
-    const item = { title: meta.title, week: meta.week, type: meta.type, name: meta.name, url: `uploads/${meta.name}` };
-    if(idx>=0) manifest.items[idx]=item; else (manifest.items||(manifest.items=[])).push(item);
+    const idx = (manifest.items || []).findIndex(x => x.name === meta.name);
+    const item = {
+      title: meta.title,
+      week: meta.week,
+      type: meta.type,
+      name: meta.name,
+      url: `uploads/${meta.name}`
+    };
+    if (idx >= 0) manifest.items[idx] = item;
+    else (manifest.items || (manifest.items = [])).push(item);
+
     await writeLocalManifest(manifest);
   }
+
+  // 🔄 Refresca UI: contadores y listas de la semana seleccionada
+  buildWeeksSidebar();
+  if (store.currentWeek === meta.week) {
+    renderWeekGrid(store.currentWeek);
+    renderFilesSidebar(store.currentWeek);
+  }
+
   alert('Archivo guardado. Si conectaste uploads/, ya se actualizó index.json. Recuerda hacer git add/commit/push.');
 }
+
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async ()=>{
   ensureWeekOptions(document.getElementById('week-select'));
-  await loadEntries(); await loadDirHandle(); await loadRepoManifest(); renderAccordion();
+  await loadEntries();
+await loadDirHandle();
+await loadRepoManifest();
+
+// construir barra secundaria (Semana 1..16) y abrir la semana actual (o 1)
+buildWeeksSidebar();
+openWeek(store.currentWeek || 1);
+
 
   store.isAdmin = localStorage.getItem('isAdmin')==='1'; updateAuthUI();
   $$('button[data-nav]').forEach(b=>b.onclick=()=>showView(b.dataset.nav)); showView('portfolio');
@@ -169,3 +230,69 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b=>b.onclick=(ev)=>closeModal(ev.target.closest('.modal-backdrop')));
   $$('#modal-login, #modal-preview').forEach(m=>m.onclick=(e)=>{ if(e.target.classList.contains('modal-backdrop')) closeModal(e.target); });
 });
+
+// Botones Semana 1–16 en la barra 2
+function buildWeeksSidebar(){
+  const nav = $('#weeks-nav'); if (!nav) return;
+  nav.innerHTML = '';
+  for (let w=1; w<=16; w++){
+    const count = store.repoEntries.filter(e=>+e.week===w).length;
+    const btn = document.createElement('button');
+    btn.className = 'wk';
+    btn.dataset.week = String(w);
+    btn.innerHTML = `
+      <span class="pill">${w}</span>
+      <span>Semana ${w}</span>
+      <span style="margin-left:auto; font-size:.75rem; color:#a9b6dc;">${count}</span>`;
+    btn.addEventListener('click', () => {
+      $$('#weeks-nav .wk').forEach(b => b.classList.toggle('active', b === btn));
+      openWeek(w);
+    });
+    if (w === (store.currentWeek||1)) btn.classList.add('active');
+    nav.appendChild(btn);
+  }
+}
+
+// Lista compacta en la barra 2
+function renderFilesSidebar(week){
+  const box = $('#weeks-files'); if (!box) return;
+  box.innerHTML = '';
+  const items = store.repoEntries.filter(e => +e.week === +week)
+    .sort((a,b) => (a.title||a.name).localeCompare(b.title||b.name));
+  if (!items.length){
+    const empty=document.createElement('div'); empty.className='empty'; empty.textContent='No hay archivos en esta semana'; box.appendChild(empty); return;
+  }
+  for (const it of items){
+    const row=document.createElement('div'); row.className='file-mini';
+    row.innerHTML=`
+      <div class="ico">${it.type==='image'?'🖼️':'📄'}</div>
+      <div><div class="title" style="font-weight:700; font-size:.86rem">${it.title||it.name}</div><div class="meta">${it.type.toUpperCase()}</div></div>
+      <div class="spacer"></div>
+      <div class="act"><button type="button" data-action="prev">Ver</button><a href="${it.url}" download="${it.name}">Desc.</a></div>`;
+    row.querySelector('[data-action="prev"]').onclick=()=>{
+      const cont=$('#preview-container'); cont.innerHTML='';
+      if (it.type==='image'){ const im=new Image(); im.src=it.url; im.className='w-full h-full object-contain bg-black'; cont.appendChild(im);}
+      else { const ifr=document.createElement('iframe'); ifr.src=it.url; ifr.className='w-full h-full'; cont.appendChild(ifr);}
+      openModal($('#modal-preview'));
+    };
+    box.appendChild(row);
+  }
+}
+
+// Grid del centro
+function renderWeekGrid(week){
+  const grid = $('#files-grid'); if (!grid) return;
+  grid.innerHTML='';
+  const items = store.repoEntries.filter(e=>+e.week===+week);
+  if (!items.length){
+    const empty=document.createElement('div'); empty.className='empty'; empty.textContent='No hay archivos en esta semana.'; grid.appendChild(empty); return;
+  }
+  items.forEach(it=>grid.appendChild(createCard(it)));
+}
+
+// Abre semana (centro + barra 2)
+function openWeek(w){
+  store.currentWeek = w;
+  renderWeekGrid(w);
+  renderFilesSidebar(w);
+}
