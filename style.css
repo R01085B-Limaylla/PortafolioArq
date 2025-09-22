@@ -450,7 +450,20 @@ button[data-nav].active{ background: rgba(255,255,255,.10); border:1px solid var
   background: rgba(255,255,255,.06); border: 1px solid var(--border); transition: transform .25s ease;
 }
 
-.sidebar2__nav{ display:grid; gap:.35rem; overflow:auto; padding-right:.25rem; max-height: 40vh; }
+/* Lista de semanas: que llene toda la altura */
+.sidebar2__nav{
+  display: grid;
+  gap: .35rem;
+
+  /* Claves para ocupar todo y scrollear */
+  flex: 1;           /* ocupa el espacio libre de la barra */
+  min-height: 0;     /* permite que el scroll funcione dentro del flex */
+  overflow: auto;    /* scroll vertical si es necesario */
+
+  padding-right: .25rem;
+  /* quita cualquier max-height anterior */
+}
+
 .wk{
   display:flex; align-items:center; gap:.5rem; width:100%;
   padding:.5rem .65rem; border-radius:10px; border:1px solid transparent;

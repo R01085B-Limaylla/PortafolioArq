@@ -290,9 +290,9 @@ function renderWeekGrid(week){
   items.forEach(it=>grid.appendChild(createCard(it)));
 }
 
-// Abre semana (centro + barra 2)
+// Abre semana (solo centro)
 function openWeek(w){
   store.currentWeek = w;
-  renderWeekGrid(w);
-  renderFilesSidebar(w);
+  renderWeekGrid(w);   // solo renderiza en el Dashboard
+  // ❌ quitar la llamada a renderFilesSidebar(w);
 }
