@@ -48,6 +48,20 @@
       "type": "pdf",
       "name": "Actividad 1.pdf",
       "url": "uploads/Actividad 1.pdf"
+    },
+    {
+      "title": "Actividad 1 Sesion 1",
+      "week": 1,
+      "type": "pdf",
+      "name": "Actividad 1 Sesion 1.pdf",
+      "url": "uploads/Actividad 1 Sesion 1.pdf"
+    },
+    {
+      "title": "Actividad 1 Sesion 2",
+      "week": 2,
+      "type": "pdf",
+      "name": "Actividad 1 Sesion 2.pdf",
+      "url": "uploads/Actividad 1 Sesion 2.pdf"
     }
   ]
 }
