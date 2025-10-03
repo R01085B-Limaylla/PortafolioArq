@@ -203,7 +203,29 @@ async function addEntry({ title, week, file }) {
 
   alert('Archivo guardado. Si conectaste uploads/, ya se actualizó index.json. Recuerda hacer git add/commit/push.');
 }
+// ===== SUPABASE AUTH =====
+async function sbSignUp(email, password) {
+  const { data, error } = await sb.auth.signUp({ email, password });
+  if (error) throw error;
+  return data;
+}
 
+async function sbSignIn(email, password) {
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function sbSignOut() {
+  await sb.auth.signOut();
+}
+
+// Refrescar UI al cambiar sesión
+sb.auth.onAuthStateChange((_event, session) => {
+  const isLogged = !!session;
+  store.isAdmin = isLogged;     // tu variable global que activa el modo admin
+  updateAuthUI();               // tu función que muestra/oculta #admin-tools
+});
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async ()=>{
