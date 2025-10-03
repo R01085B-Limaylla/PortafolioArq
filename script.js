@@ -1,212 +1,232 @@
-// ===== Configuración de Supabase =====
-const SUPABASE_URL = "https://oqrmtfxvhtmjyoekssgu.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcm10Znh2aHRtanlvZWtzc2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxMjA3NjYsImV4cCI6MjA3NDY5Njc2Nn0.mdjAo_SdGt4KfnEuyXT8KVaJDA6iDVNbHLYmt22e-b0";
+// =============================
+//  Portafolio – script.js (limpio)
+//  Supabase + Sidebar semanas + CRUD admin
+// =============================
 
-const supabase = window.supabase || createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ---------- Configuración Supabase (usa la que defines en index.html) ----------
+const supabase = (window && window.supabase) ? window.supabase : null;
 
-// ===== Estado =====
-const store = { 
-  entries: [], 
-  repoEntries: [], 
-  isAdmin:false, 
-  currentWeek: 1 
-};
-const dbEntriesKey='entries'; 
-const dbFileKey=id=>`file:${id}`;
-
-// ===== Utils =====
-const $=(s,el=document)=>el.querySelector(s); 
-const $$=(s,el=document)=>[...el.querySelectorAll(s)];
-const fmtBytes=b=>b<1024?b+' B':b<1024**2?(b/1024).toFixed(1)+' KB':b<1024**3?(b/1024**2).toFixed(1)+' MB':(b/1024**3).toFixed(1)+' GB';
-const openModal=el=>el.style.display='flex'; 
-const closeModal=el=>el.style.display='none';
-
-const updateAuthUI=()=>{
-  $('#btn-login').classList.toggle('hidden',store.isAdmin);
-  $('#btn-logout').classList.toggle('hidden',!store.isAdmin);
-  $('#admin-tools').classList.toggle('hidden',!store.isAdmin);
-
-  // Mostrar/ocultar botones de editar/eliminar
-  $$('.card [data-action="edit"], .card [data-action="delete"]').forEach(btn=>{
-    btn.style.display = store.isAdmin ? "inline-flex" : "none";
-  });
+// ---------- Estado global ----------
+window.store = {
+  repoEntries: [],         // Archivos visibles (semanas)
+  isAdmin: false,          // Control de UI admin (auth)
+  currentWeek: 1           // Semana seleccionada
 };
 
-async function persistEntries(){ await idbKeyval.set(dbEntriesKey, store.entries); }
-async function loadEntries(){ store.entries = (await idbKeyval.get(dbEntriesKey)) || []; }
+// ---------- Utils ----------
+const $  = (s, el=document) => el.querySelector(s);
+const $$ = (s, el=document) => [...el.querySelectorAll(s)];
+const openModal  = el => el && (el.style.display = 'flex');
+const closeModal = el => el && (el.style.display = 'none');
 
-function ensureWeekOptions(sel){ 
-  sel.innerHTML='<option value="" disabled selected>Semana…</option>'
-    +Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join('');
+function ensureWeekOptions(sel){
+  if (!sel) return;
+  sel.innerHTML = '<option value="" disabled selected>Semana…</option>' +
+    Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join('');
 }
 
-// ==== Vista principal (Portafolio o Perfil) ====
-window.showView = function(name) {
-  const vp = document.getElementById('view-portfolio');
-  const vf = document.getElementById('view-profile');
+function updateAuthUI(){
+  const { isAdmin } = store;
+  const btnLogin  = $('#btn-login');
+  const btnLogout = $('#btn-logout');
+  const adminBox  = $('#admin-tools');
 
+  if (btnLogin)  btnLogin.classList.toggle('hidden',  isAdmin);
+  if (btnLogout) btnLogout.classList.toggle('hidden', !isAdmin);
+  if (adminBox)  adminBox.classList.toggle('hidden', !isAdmin);
+
+  // Mostrar / ocultar acciones admin en cards ya renderizadas
+  $$('.card [data-action="edit"], .card [data-action="delete"]').forEach(btn => {
+    btn.style.display = isAdmin ? 'inline-flex' : 'none';
+  });
+}
+
+// ---------- Navegación (Portafolio / Perfil) ----------
+window.showView = function(name){
+  const vp = $('#view-portfolio');
+  const vf = $('#view-profile');
   if (vp && vf) {
     vp.classList.toggle('hidden', name !== 'portfolio');
     vf.classList.toggle('hidden', name !== 'profile');
   }
 
-  // Marcar activo en el menú lateral (solo cambia clases/atributos; NO pone onclick)
-  document.querySelectorAll('button[data-nav]').forEach(b => {
+  // marcar activo en menú lateral (no asigna handlers aquí)
+  $$('button[data-nav]').forEach(b => {
     const active = b.dataset.nav === name;
     b.classList.toggle('active', active);
     if (active) b.setAttribute('aria-current', 'page');
-    else b.removeAttribute('aria-current');
+    else        b.removeAttribute('aria-current');
   });
 
-  // Sidebar de semanas solo en Portafolio
-  if (typeof toggleSecondSidebar === 'function') {
-    toggleSecondSidebar(name === 'portfolio');
-  }
+  toggleSecondSidebar(name === 'portfolio');
 
-  // Al entrar a Portafolio, pinta la semana actual
-  if (name === 'portfolio' && typeof openWeek === 'function') {
-    const w = (window.store && window.store.currentWeek) || 1;
-    openWeek(w);
-  }
+  // Al entrar al portafolio siempre mostramos la semana en curso
+  if (name === 'portfolio') openWeek(store.currentWeek || 1);
 };
 
-// ==== Sidebar Semanas (mostrar/ocultar) ====
-function toggleSecondSidebar(show) {
-  const sb2 = document.getElementById('sidebar-weeks');
-  const main = document.getElementById('app-main');
+function toggleSecondSidebar(show){
+  const sb2 = $('#sidebar-weeks');
+  const main = $('#app-main');
   if (!sb2 || !main) return;
   sb2.classList.toggle('show', !!show);
   sb2.style.display = show ? 'flex' : 'none';
   main.classList.toggle('with-sidebar-2', !!show);
 }
 
-
-// ===== Supabase: listado remoto =====
+// ---------- Carga de archivos (Supabase Storage) ----------
+// NOTA: Por simplicidad, asignamos week=1 para todos (puedes guardar semana en DB aparte).
 async function loadRepoManifest(){
-  try {
-    const { data, error } = await supabase.storage.from("uploads").list("", { limit: 100 });
+  if (!supabase) return;
+  try{
+    const { data, error } = await supabase.storage.from('uploads').list('', { limit: 300 });
     if (error) throw error;
 
-    store.repoEntries = data.map(it=>{
-      const ext = it.name.split('.').pop().toLowerCase();
-      const type = ["jpg","jpeg","png","gif","webp"].includes(ext) ? "image" : "pdf";
+    store.repoEntries = (data || []).map(it => {
+      const ext  = it.name.split('.').pop().toLowerCase();
+      const type = ['jpg','jpeg','png','gif','webp','bmp'].includes(ext) ? 'image' : 'pdf';
       return {
         title: it.name,
         name: it.name,
-        week: 1, // ⚠️ aquí podrías guardar semana en metadata
+        week: 1, // TODO: guarda/lee semana real desde DB si la usas
         type,
-        url: `${SUPABASE_URL}/storage/v1/object/public/uploads/${it.name}`
+        url: `${supabase.supabaseUrl || ''}/storage/v1/object/public/uploads/${it.name}`
       };
     });
-  } catch(e){ console.error("Error cargando manifest:", e); }
+  }catch(e){
+    console.error('Error loadRepoManifest:', e);
+  }
 }
 
-// ===== Thumbnails =====
+// ---------- Thumbnails para PDFs ----------
 async function renderPdfThumb(url, imgEl){
-  try{ 
-    const pdf=await pdfjsLib.getDocument({url}).promise; 
-    const page=await pdf.getPage(1);
-    const vp=page.getViewport({scale:1.0}); 
-    const scale=Math.min(640/vp.width,1.5); 
-    const v=page.getViewport({scale});
-    const c=document.createElement('canvas'); 
-    c.width=v.width; c.height=v.height;
-    await page.render({canvasContext:c.getContext('2d',{alpha:false}), viewport:v}).promise;
-    imgEl.src=c.toDataURL('image/png'); 
+  try{
+    const pdf = await pdfjsLib.getDocument({ url }).promise;
+    const page = await pdf.getPage(1);
+    const vp   = page.getViewport({ scale: 1.0 });
+    const sc   = Math.min(640 / vp.width, 1.5);
+    const view = page.getViewport({ scale: sc });
+    const c = document.createElement('canvas');
+    c.width  = view.width;
+    c.height = view.height;
+    await page.render({ canvasContext: c.getContext('2d', { alpha:false }), viewport: view }).promise;
+    imgEl.src = c.toDataURL('image/png');
     imgEl.classList.remove('hidden');
-  }catch(e){ /* deja icono PDF */ }
+  }catch{
+    // deja el ícono PDF
+  }
 }
 
-// ===== Cards =====
+// ---------- Cards ----------
 function createCard(item){
-  const tpl=$('#card-template'); 
-  const node=tpl.content.firstElementChild.cloneNode(true);
-  const img=$('[data-role=thumb]',node); 
-  const pdfCover=$('[data-role=pdfcover]',node);
-  const title=$('[data-role=title]',node); 
-  const meta=$('[data-role=meta]',node);
-  const btnPrev=$('[data-action=preview]',node); 
-  const aDownload=$('[data-role=download]',node);
+  const tpl  = $('#card-template');
+  const node = tpl.content.firstElementChild.cloneNode(true);
 
-  title.textContent=item.title||item.name; 
-  meta.textContent=`${item.type.toUpperCase()} · Semana ${item.week}`;
-  aDownload.href=item.url; 
-  aDownload.download=item.name;
+  const img      = $('[data-role=thumb]', node);
+  const pdfCover = $('[data-role=pdfcover]', node);
+  const title    = $('[data-role=title]', node);
+  const meta     = $('[data-role=meta]', node);
+  const btnPrev  = $('[data-action=preview]', node);
+  const aDown    = $('[data-role=download]', node);
 
-  if(item.type==='image'){ 
-    img.src=item.url; 
-    img.onload=()=>img.classList.remove('hidden'); 
-  }
-  else { 
-    renderPdfThumb(item.url,img).then(()=>{ 
-      if(!img.src) pdfCover.classList.remove('hidden'); 
-    }); 
+  title.textContent = item.title || item.name;
+  meta.textContent  = `${item.type.toUpperCase()} · Semana ${item.week}`;
+  aDown.href        = item.url;
+  aDown.download    = item.name;
+
+  if (item.type === 'image'){
+    img.src = item.url;
+    img.onload = () => img.classList.remove('hidden');
+  }else{
+    renderPdfThumb(item.url, img).then(() => { if (!img.src) pdfCover.classList.remove('hidden'); });
   }
 
-  btnPrev.onclick=()=>{ 
-    const cont=$('#preview-container'); 
-    cont.innerHTML='';
-    if(item.type==='image'){ 
-      const im=new Image(); 
-      im.src=item.url; 
-      im.className='w-full h-full object-contain bg-black'; 
-      cont.appendChild(im); 
-    }
-    else { 
-      const ifr=document.createElement('iframe'); 
-      ifr.src=item.url; 
-      ifr.className='w-full h-full'; 
-      cont.appendChild(ifr); 
+  btnPrev.onclick = () => {
+    const cont = $('#preview-container'); cont.innerHTML = '';
+    if (item.type === 'image'){
+      const im = new Image();
+      im.src = item.url;
+      im.className = 'w-full h-full object-contain bg-black';
+      cont.appendChild(im);
+    }else{
+      const ifr = document.createElement('iframe');
+      ifr.src = item.url;
+      ifr.className = 'w-full h-full';
+      cont.appendChild(ifr);
     }
     openModal($('#modal-preview'));
   };
 
-  // Botones Admin
-  if (store.isAdmin) {
-    const editBtn = document.createElement("button");
-    editBtn.textContent = "Editar";
-    editBtn.dataset.action="edit";
-    editBtn.className="btn btn-ghost px-2 py-1 text-xs";
-    editBtn.onclick=()=>editEntry(item);
+  // Acciones admin (agregadas aquí para que respondan a cambios de sesión sin recargar)
+  const actionBar = node.querySelector('.flex.items-center.gap-1');
+  if (actionBar){
+    const btnEdit = document.createElement('button');
+    btnEdit.className = 'btn btn-ghost px-2 py-1 text-xs';
+    btnEdit.dataset.action = 'edit';
+    btnEdit.textContent = 'Editar';
+    btnEdit.style.display = store.isAdmin ? 'inline-flex':'none';
+    btnEdit.onclick = () => editEntry(item);
 
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "Eliminar";
-    delBtn.dataset.action="delete";
-    delBtn.className="btn btn-ghost px-2 py-1 text-xs";
-    delBtn.onclick=()=>deleteEntry(item);
+    const btnDel  = document.createElement('button');
+    btnDel.className = 'btn btn-ghost px-2 py-1 text-xs';
+    btnDel.dataset.action = 'delete';
+    btnDel.textContent = 'Eliminar';
+    btnDel.style.display = store.isAdmin ? 'inline-flex':'none';
+    btnDel.onclick = () => deleteEntry(item);
 
-    node.querySelector(".flex.items-center.gap-1").appendChild(editBtn);
-    node.querySelector(".flex.items-center.gap-1").appendChild(delBtn);
+    actionBar.appendChild(btnEdit);
+    actionBar.appendChild(btnDel);
   }
 
   return node;
 }
 
-// ===== CRUD (editar/eliminar solo Admin) =====
+// ---------- CRUD (solo Admin) ----------
 async function editEntry(item){
-  const nuevoTitulo = prompt("Nuevo título:", item.title);
-  if (!nuevoTitulo) return;
-  item.title = nuevoTitulo;
-  // ⚠️ Aquí puedes actualizar en Supabase (DB o metadata)
-  renderWeekGrid(store.currentWeek);
-}
-async function deleteEntry(item){
-  if (!confirm(`¿Eliminar ${item.title}?`)) return;
-  try {
-    await supabase.storage.from("uploads").remove([item.name]);
-    store.repoEntries = store.repoEntries.filter(e=>e.name!==item.name);
-    renderWeekGrid(store.currentWeek);
-    alert("Eliminado correctamente");
-  } catch(e){ alert("Error eliminando: "+e.message); }
+  const nuevoTitulo = prompt('Nuevo título:', item.title || item.name);
+  if (nuevoTitulo === null) return;
+  let nuevaSemana   = prompt('Nueva semana (1-16):', item.week);
+  if (nuevaSemana === null) return;
+  nuevaSemana = parseInt(nuevaSemana, 10);
+  if (!(nuevaSemana >= 1 && nuevaSemana <= 16)){
+    alert('Semana inválida. Debe ser 1 a 16.');
+    return;
+  }
+
+  // Actualiza en memoria (si usas DB, persiste ahí también)
+  const ref = store.repoEntries.find(x => x.name === item.name);
+  if (ref){
+    ref.title = (nuevoTitulo || ref.title).trim();
+    ref.week  = nuevaSemana;
+  }
+
+  buildWeeksSidebar();
+  openWeek(store.currentWeek || 1);
+  alert('Elemento actualizado (nota: para persistir este cambio usa una base de datos).');
 }
 
-// ===== Barra lateral de semanas =====
+async function deleteEntry(item){
+  if (!confirm(`¿Eliminar "${item.title || item.name}"?`)) return;
+  try{
+    if (supabase){
+      const { error } = await supabase.storage.from('uploads').remove([item.name]);
+      if (error) throw error;
+    }
+    store.repoEntries = store.repoEntries.filter(x => x.name !== item.name);
+    buildWeeksSidebar();
+    openWeek(store.currentWeek || 1);
+    alert('Eliminado correctamente.');
+  }catch(e){
+    alert('No se pudo eliminar: ' + e.message);
+  }
+}
+
+// ---------- Lateral de semanas ----------
 function buildWeeksSidebar(){
-  const nav = $('#weeks-nav'); 
+  const nav = $('#weeks-nav');
   if (!nav) return;
   nav.innerHTML = '';
   for (let w=1; w<=16; w++){
-    const count = store.repoEntries.filter(e=>+e.week===w).length;
+    const count = store.repoEntries.filter(e => +e.week === w).length;
     const btn = document.createElement('button');
     btn.className = 'wk';
     btn.dataset.week = String(w);
@@ -218,298 +238,127 @@ function buildWeeksSidebar(){
       $$('#weeks-nav .wk').forEach(b => b.classList.toggle('active', b === btn));
       openWeek(w);
     });
-    if (w === (store.currentWeek||1)) btn.classList.add('active');
+    if (w === (store.currentWeek || 1)) btn.classList.add('active');
     nav.appendChild(btn);
   }
 }
 
-// ===== Grid central =====
+// ---------- Grid central ----------
 function renderWeekGrid(week){
   const grid = $('#files-grid'); if (!grid) return;
-  grid.innerHTML='';
-  const items = store.repoEntries.filter(e=>+e.week===+week);
+  grid.innerHTML = '';
+  const items = store.repoEntries.filter(e => +e.week === +week);
   if (!items.length){
-    const empty=document.createElement('div'); 
-    empty.className='empty'; 
-    empty.textContent='No hay archivos en esta semana.'; 
-    grid.appendChild(empty); 
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No hay archivos en esta semana.';
+    grid.appendChild(empty);
     return;
   }
-  items.forEach(it=>grid.appendChild(createCard(it)));
+  items.forEach(it => grid.appendChild(createCard(it)));
 }
 
-// ===== Abrir semana =====
 function openWeek(w){
   store.currentWeek = w;
-  renderWeekGrid(w);   // solo renderiza en el Dashboard
+  renderWeekGrid(w);
 }
 
-// ===== SUPABASE AUTH =====
-async function sbSignUp(email, password) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) throw error;
-  return data;
-}
-async function sbSignIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  return data;
-}
-async function sbSignOut() {
-  await supabase.auth.signOut();
-}
-
-// Refrescar UI cuando cambia la sesión
-supabase.auth.onAuthStateChange((_event, session) => {
-  const isLogged = !!session;
-  const user = session?.user?.email || null;
-  // solo el correo admin@upla.edu es admin
-  store.isAdmin = (isLogged && user === "admin@upla.edu");
-  updateAuthUI();
-});
-
-// ===== Eventos de login/logout =====
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Botón login: abre modal
-  $('#btn-login').onclick=()=>openModal($('#modal-login'));
-
-  // Botón logout
-  $('#btn-logout').onclick=sbSignOut;
-
-  // Formulario login
-  $('#login-form').onsubmit = async (e)=>{
-    e.preventDefault();
-    const email = $('#login-user').value.trim();
-    const pass  = $('#login-pass').value.trim();
-    try {
-      await sbSignIn(email, pass);
-      closeModal($('#modal-login'));
-    } catch (err) {
-      alert("No se pudo iniciar sesión: " + err.message);
-    }
-  };
-});
-
-// ===== Upload archivos =====
-document.addEventListener('DOMContentLoaded', ()=>{
-  $('#upload-form').onsubmit=async(e)=>{
-    e.preventDefault();
-    const title=$('#title-input').value.trim(); 
-    const week=$('#week-select').value; 
-    const file=$('#file-input').files[0];
-    if(!title||!week||!file) return alert('Completa título, semana y archivo.');
-
-    try {
-      // Subir a Supabase Storage
-      const { error } = await supabase.storage.from("uploads").upload(file.name, file, { upsert: true });
-      if (error) throw error;
-
-      // Insertar referencia en lista local
-      store.repoEntries.push({
-        title, 
-        week:+week, 
-        type:file.type.startsWith("image/")?"image":"pdf",
-        name:file.name,
-        url:`${SUPABASE_URL}/storage/v1/object/public/uploads/${file.name}`
-      });
-
-      buildWeeksSidebar();
-      openWeek(+week);
-
-      e.target.reset(); 
-      $('#week-select').value='';
-      alert("Archivo subido correctamente.");
-    } catch(err){ 
-      alert("Error subiendo archivo: "+err.message); 
-    }
-  };
-});
-
-// ===== Init =====
-document.addEventListener('DOMContentLoaded', async ()=>{
-  ensureWeekOptions(document.getElementById('week-select'));
-  await loadEntries();
-  await loadRepoManifest();
-
-  buildWeeksSidebar();
-  openWeek(1);
-
-  showView('portfolio'); // pantalla inicial
-});
-
-// ===== Helpers para refrescar la UI al cambiar el estado de admin =====
-function refreshUIAfterAuthChange() {
-  // Botonera y herramientas de admin
-  const adminTools = $('#admin-tools');
-  if (adminTools) adminTools.classList.toggle('hidden', !store.isAdmin);
-
-  // Botones Login / Logout
-  const btnLogin = $('#btn-login');
-  const btnLogout = $('#btn-logout');
-  if (btnLogin) btnLogin.classList.toggle('hidden', store.isAdmin);
-  if (btnLogout) btnLogout.classList.toggle('hidden', !store.isAdmin);
-
-  // Re-render de la semana actual para que aparezcan o se oculten las acciones admin
-  openWeek(store.currentWeek || 1);
-}
-
-// ===== Parchear createCard para agregar acciones de admin sin recargar =====
-(function patchCreateCardForAdmin(){
-  if (window.__createCard_patched__) return; // evitar doble parche
-  window.__createCard_patched__ = true;
-
-  const __origCreateCard = createCard;
-  window.createCard = function(item){
-    const node = __origCreateCard(item);
-
-    // Si es admin, añadimos barra de acciones (Editar / Eliminar)
-    if (store.isAdmin) {
-      addAdminToolbar(node, item);
-    }
-    return node;
-  };
-})();
-
-// ===== Toolbar de admin en las cards =====
-function addAdminToolbar(cardNode, item) {
-  // contenedor superior (donde está la vista previa/descarga)
-  let toolbar = cardNode.querySelector('.toolbar-admin');
-  if (!toolbar) {
-    toolbar = document.createElement('div');
-    toolbar.className = 'toolbar-admin';
-    toolbar.style.display = 'flex';
-    toolbar.style.gap = '.4rem';
-
-    const btnEdit = document.createElement('button');
-    btnEdit.className = 'btn btn-ghost';
-    btnEdit.textContent = 'Editar';
-    btnEdit.style.fontSize = '.75rem';
-
-    const btnDel = document.createElement('button');
-    btnDel.className = 'btn btn-ghost';
-    btnDel.textContent = 'Eliminar';
-    btnDel.style.fontSize = '.75rem';
-
-    // colocar a la derecha del header de la card
-    const header = cardNode.querySelector('.mt-3 .flex');
-    if (header) {
-      header.appendChild(toolbar);
-    } else {
-      // fallback: ponerlo al final de la card
-      cardNode.appendChild(toolbar);
-    }
-
-    toolbar.appendChild(btnEdit);
-    toolbar.appendChild(btnDel);
-
-    // EDITAR
-    btnEdit.addEventListener('click', async ()=>{
-      const nuevoTitulo = prompt('Nuevo título:', item.title || item.name);
-      if (nuevoTitulo === null) return;
-
-      let nuevaSemana = prompt('Nueva semana (1-16):', item.week);
-      if (nuevaSemana === null) return;
-      nuevaSemana = parseInt(nuevaSemana, 10);
-      if (!(nuevaSemana >= 1 && nuevaSemana <= 16)) {
-        alert('Semana inválida. Debe ser 1 a 16.');
-        return;
-      }
-
-      // Actualiza en memoria
-      const ref = store.repoEntries.find(x => x.name === item.name);
-      if (ref) {
-        ref.title = nuevoTitulo.trim() || ref.title;
-        ref.week  = nuevaSemana;
-      }
-
-      // Refrescar UI
-      buildWeeksSidebar();
-      openWeek(store.currentWeek || 1);
-      alert('Elemento actualizado (nota: si deseas persistir cambios, usa una BD).');
-    });
-
-    // ELIMINAR
-    btnDel.addEventListener('click', async ()=>{
-      if (!confirm(`¿Eliminar "${item.title || item.name}"?`)) return;
-      try {
-        // Elimina del Storage (si usas Supabase Storage)
-        const { error } = await supabase
-          .storage
-          .from('uploads')
-          .remove([item.name]);
-        if (error) throw error;
-
-        // Elimina del listado local
-        store.repoEntries = store.repoEntries.filter(x => x.name !== item.name);
-
-        // Refrescar UI
-        buildWeeksSidebar();
-        openWeek(store.currentWeek || 1);
-        alert('Eliminado correctamente.');
-      } catch(err){
-        alert('No se pudo eliminar: ' + err.message);
-      }
-    });
-  }
-}
-
-
-
-
-// ===== Modales: cerrar al hacer click fuera =====
-document.addEventListener('DOMContentLoaded', ()=>{
-  $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b =>
-    b.onclick = (ev)=> closeModal(ev.target.closest('.modal-backdrop'))
-  );
-  $$('#modal-login, #modal-preview').forEach(m =>
-    m.onclick = (e)=>{ if (e.target.classList.contains('modal-backdrop')) closeModal(e.target); }
-  );
-});
-
-// ===== Escucha de auth state (forzar refresco inmediato de UI) =====
-if (supabase && supabase.auth) {
+// ---------- Auth helpers ----------
+function attachAuthListener(){
+  if (!supabase || !supabase.auth) return;
   supabase.auth.onAuthStateChange((_event, session) => {
-    const isLogged = !!session;
-    const user = session?.user?.email || null;
-    store.isAdmin = (isLogged && user === 'admin@upla.edu'); // sólo este correo es admin
-    refreshUIAfterAuthChange();
+    const email = session?.user?.email || null;
+    // Permite admin para admin@upla.edu y admin@upla.edu.pe
+    store.isAdmin = !!email && /admin@upla\.edu(\.pe)?$/i.test(email);
+    updateAuthUI();
+    // Re-render para mostrar/ocultar botones admin en las cards
+    openWeek(store.currentWeek || 1);
   });
 }
 
-// ===== Botones Login / Logout (asegurar que existen) =====
-document.addEventListener('DOMContentLoaded', ()=>{
-  const btnLogin = $('#btn-login');
-  const btnLogout = $('#btn-logout');
+// ---------- Handlers DOM Ready ----------
+document.addEventListener('DOMContentLoaded', async ()=>{
+  // Week select (form admin)
+  ensureWeekOptions($('#week-select'));
 
-  if (btnLogin) btnLogin.onclick = ()=> openModal($('#modal-login'));
-  if (btnLogout) btnLogout.onclick = async ()=>{
-    await supabase.auth.signOut();
-    refreshUIAfterAuthChange();
-  };
+  // Menú lateral principal
+  $$('button[data-nav]').forEach(b => {
+    b.addEventListener('click', () => window.showView(b.dataset.nav));
+  });
 
-  const loginForm = $('#login-form');
-  if (loginForm) {
-    loginForm.onsubmit = async (e)=>{
+  // Modales: cerrar
+  $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b =>
+    b.addEventListener('click', ev => closeModal(ev.target.closest('.modal-backdrop')))
+  );
+  $$('#modal-login, #modal-preview').forEach(m =>
+    m.addEventListener('click', e => { if (e.target.classList.contains('modal-backdrop')) closeModal(e.target); })
+  );
+
+  // Login / Logout
+  const loginBtn   = $('#btn-login');
+  const logoutBtn  = $('#btn-logout');
+  const loginForm  = $('#login-form');
+
+  if (loginBtn)  loginBtn.addEventListener('click', () => openModal($('#modal-login')));
+  if (logoutBtn) logoutBtn.addEventListener('click', async () => { await supabase?.auth?.signOut(); });
+
+  if (loginForm){
+    loginForm.addEventListener('submit', async e => {
       e.preventDefault();
       const email = $('#login-user').value.trim();
       const pass  = $('#login-pass').value.trim();
-      try {
-        await supabase.auth.signInWithPassword({ email, password: pass });
+      try{
+        const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
         closeModal($('#modal-login'));
-        refreshUIAfterAuthChange();
-      } catch (err) {
+      }catch(err){
         alert('No se pudo iniciar sesión: ' + err.message);
       }
-    };
+    });
   }
+
+  // Subir (solo admins – el form está oculto para otros por updateAuthUI)
+  const uploadForm = $('#upload-form');
+  if (uploadForm){
+    uploadForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const title = $('#title-input').value.trim();
+      const week  = +$('#week-select').value;
+      const file  = $('#file-input').files[0];
+      if (!title || !week || !file) return alert('Completa título, semana y archivo.');
+
+      try{
+        const { error } = await supabase.storage.from('uploads').upload(file.name, file, { upsert: true });
+        if (error) throw error;
+
+        store.repoEntries.push({
+          title,
+          week,
+          type: file.type.startsWith('image/') ? 'image' : 'pdf',
+          name: file.name,
+          url: `${supabase.supabaseUrl || ''}/storage/v1/object/public/uploads/${file.name}`
+        });
+
+        buildWeeksSidebar();
+        openWeek(week);
+        uploadForm.reset();
+        $('#week-select').value = '';
+        alert('Archivo subido correctamente.');
+      }catch(err){
+        alert('Error subiendo archivo: ' + err.message);
+      }
+    });
+  }
+
+  // Carga inicial
+  await loadRepoManifest();
+  buildWeeksSidebar();
+  showView('portfolio'); // vista inicial
+  openWeek(1);
+
+  // Auth listener (al final para refrescar UI tras render inicial)
+  attachAuthListener();
+  updateAuthUI();
 });
 
-// ===== Cierre: reforzar estado inicial =====
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Asegura que la semana 1 esté visible y la UI lista
-  buildWeeksSidebar();
-  openWeek(store.currentWeek || 1);
-  showView('portfolio');
-  refreshUIAfterAuthChange();
-});
 
