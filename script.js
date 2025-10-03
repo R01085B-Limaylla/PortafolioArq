@@ -123,6 +123,31 @@ function createCard(item){
   const title=$('[data-role=title]',node); const meta=$('[data-role=meta]',node);
   const btnPrev=$('[data-action=preview]',node); const aDownload=$('[data-role=download]',node);
 
+     // ... dentro de createCard, después de crear btnPrev y aDownload:
+  const actionsWrap = btnPrev.parentElement; // contenedor de acciones
+
+  if (store.isAdmin && actionsWrap) {
+    // EDITAR
+    const btnEdit = document.createElement('button');
+    btnEdit.className = 'btn btn-ghost px-2 py-1 text-xs';
+    btnEdit.textContent = 'Editar';
+    btnEdit.onclick = () => openEditDialog(item);
+
+    // ELIMINAR
+    const btnDel = document.createElement('button');
+    btnDel.className = 'btn btn-ghost px-2 py-1 text-xs';
+    btnDel.textContent = 'Eliminar';
+    btnDel.onclick = () => {
+      if (confirm(`¿Eliminar "${item.title || item.name}"? Esta acción quita el archivo del manifest y del carpeta uploads/ (si está conectada).`)) {
+        deleteEntry(item).catch(err => alert('No se pudo eliminar: ' + err.message));
+      }
+    };
+
+    actionsWrap.appendChild(btnEdit);
+    actionsWrap.appendChild(btnDel);
+  }
+
+   
   title.textContent=item.title||item.name; meta.textContent=`${item.type.toUpperCase()} · Semana ${item.week}`;
   aDownload.href=item.url; aDownload.download=item.name;
 
@@ -199,6 +224,79 @@ async function addEntry({ title, week, file }) {
   alert('Archivo guardado. Si conectaste uploads/, ya se actualizó index.json. Recuerda hacer git add/commit/push.');
 }
 
+// Editar un item del manifest (cambia título y semana)
+async function editEntry(name, newTitle, newWeek) {
+  if (!store.dirHandle) {
+    alert('Para editar, conecta la carpeta uploads/ (botón "Elegir carpeta").');
+    return;
+  }
+  const manifest = await readLocalManifest();
+  const items = manifest.items || [];
+  const idx = items.findIndex(x => x.name === name);
+  if (idx < 0) throw new Error('Elemento no encontrado en index.json');
+
+  items[idx].title = newTitle;
+  items[idx].week = +newWeek;
+
+  await writeLocalManifest({ items });
+  await loadRepoManifest();      // recarga publicados
+  buildWeeksSidebar();           // refresca contador de semanas
+  renderWeekGrid(store.currentWeek);  // refresca grid central
+  alert('Actualizado. Recuerda hacer git add/commit/push.');
+}
+
+// Eliminar del manifest y borrar archivo físico en carpeta (si está conectada)
+async function deleteEntry(item) {
+  if (!store.dirHandle) {
+    alert('Para eliminar, conecta la carpeta uploads/ (botón "Elegir carpeta").');
+    return;
+  }
+
+  // 1) borrar archivo físico (si existe)
+  try {
+    await store.dirHandle.removeEntry(item.name); // remueve file en uploads/
+  } catch(e) {
+    // si no existe el archivo, seguimos igual (podría haber sido borrado fuera)
+    console.warn('No se pudo borrar archivo físico (quizás no existe):', e);
+  }
+
+  // 2) quitar del manifest
+  const manifest = await readLocalManifest();
+  const items = manifest.items || [];
+  const filtered = items.filter(x => x.name !== item.name);
+  await writeLocalManifest({ items: filtered });
+
+  // 3) refrescar UI
+  await loadRepoManifest();
+  buildWeeksSidebar();
+  renderWeekGrid(store.currentWeek);
+
+  alert('Eliminado. Recuerda hacer git add/commit/push.');
+}
+
+// Diálogo simple para editar (prompts)
+function openEditDialog(item) {
+  const currTitle = item.title || item.name;
+  const currWeek = item.week;
+
+  const newTitle = prompt('Nuevo título:', currTitle);
+  if (newTitle === null) return; // cancelado
+
+  let newWeek = prompt('Nueva semana (1-16):', String(currWeek));
+  if (newWeek === null) return; // cancelado
+
+  newWeek = parseInt(newWeek, 10);
+  if (!(newWeek >= 1 && newWeek <= 16)) {
+    alert('Semana inválida. Debe ser un número entre 1 y 16.');
+    return;
+  }
+
+  editEntry(item.name, newTitle.trim(), newWeek).catch(err => {
+    alert('No se pudo editar: ' + err.message);
+  });
+}
+
+
 // ===== SUPABASE AUTH (usa SB de window) =====
 async function sbSignIn(email, password) {
   if(!SB) throw new Error('Supabase no está disponible. Revisa el <script type="module"> en index.html');
@@ -210,12 +308,16 @@ async function sbSignOut() {
   if(!SB) return;
   await SB.auth.signOut();
 }
+
+// SOLO admin@upla.edu tendrá permisos de admin
 if (SB) {
   SB.auth.onAuthStateChange((_event, session) => {
-    store.isAdmin = !!session;
+    const email = (session?.user?.email || '').toLowerCase();
+    store.isAdmin = !!session && email === 'admin@upla.edu';  // <-- aquí el filtro
     updateAuthUI();
   });
 }
+
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async ()=>{
