@@ -2,6 +2,12 @@
 //  Portafolio – script.js (Supabase + UI)
 //  Reemplaza COMPLETO tu script.js con este archivo
 // =====================
+// Reutiliza el cliente creado en index.html
+const SB = window.supabase; // alias corto
+
+if (!SB) {
+  console.error('Supabase no está disponible. Revisa el orden de los <script>.');
+}
 
 // ======= CONFIGURA SUPABASE AQUÍ =======
 const SUPABASE_URL = 'https://oqrmtfxvhtmjyoekssgu.supabase.co';   // <-- cambia
@@ -177,25 +183,25 @@ async function loadRepoFromSupabase(){
 
 // ===== SUPABASE AUTH helpers =====
 async function sbSignUp(email, password) {
-  const { data, error } = await sb.auth.signUp({ email, password });
+  const { data, error } = await SB.auth.signUp({ email, password });
   if (error) throw error;
   return data;
 }
 async function sbSignIn(email, password) {
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  const { data, error } = await SB.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
 }
 async function sbSignOut() {
-  await sb.auth.signOut();
+  await SB.auth.signOut();
 }
 // Refrescar UI al cambiar sesión
 if (sb?.auth) {
-  sb.auth.onAuthStateChange((_event, session) => {
-    store.isAdmin = !!session;
-    updateAuthUI();
-  });
-}
+  SB.auth.onAuthStateChange((_event, session) => {
+  const isLogged = !!session;
+  store.isAdmin = isLogged;
+  updateAuthUI();
+});
 
 // ===== SUBIR a Supabase (reemplaza admin local) =====
 async function addEntry({ title, week, file }){
@@ -302,6 +308,21 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     };
   }
 
+document.getElementById('login-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-user').value.trim();
+  const pass  = document.getElementById('login-pass').value.trim();
+  try {
+    await sbSignIn(email, pass);
+    closeModal(document.getElementById('modal-login'));
+  } catch (err) {
+    alert('No se pudo iniciar sesión: ' + err.message);
+  }
+};
+
+document.getElementById('btn-logout').onclick = sbSignOut;
+  
+  
   // Folder picker (legacy local) — puedes dejarlo sin uso si migraste 100% a Supabase
   $('#btn-pick-folder')?.addEventListener('click', ()=>{
     alert('Con Supabase ya no necesitas carpeta local. Este botón es opcional.');
