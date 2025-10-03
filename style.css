@@ -508,8 +508,8 @@ button[data-nav].active{ background: rgba(255,255,255,.10); border:1px solid var
 }
 .icon-btn{
   width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
-  background: rgba(255,255,255,.10);
-  border:1px solid rgba(255,255,255,.22);
+  background: rgb(0, 0, 0);
+  border:1px solid rgb(0, 0, 0);
   backdrop-filter: blur(6px) saturate(140%);
   transition: transform .15s ease, background .15s ease;
 }
