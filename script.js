@@ -156,19 +156,41 @@ function renderAccordion(){
   }
 }
 
-// ===== CRUD + Auto actualización de index.json local =====
+// ===== SUPABASE UPLOAD & DB =====
 async function addEntry({ title, week, file }) {
-  const id = crypto.randomUUID();
+  // 1) Autenticación requerida para subir
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) { alert('Debes iniciar sesión.'); return; }
+
+  // 2) Tipo
   const type = file.type.startsWith('image/') ? 'image' : 'pdf';
-  const meta = {
-    id,
-    title: title || file.name,
-    week: +week,
-    type,
-    name: file.name,
-    size: file.size,
-    createdAt: Date.now()
-  };
+
+  // 3) Ruta en el bucket (por semana)
+  const safe = file.name.replace(/\s+/g, '_');
+  const path = `week-${week}/${Date.now()}_${safe}`;
+
+  // 4) Subir a Storage
+  const { error: upErr } = await supabase.storage.from('uploads').upload(path, file, { upsert: false });
+  if (upErr) { alert('Error subiendo a Storage: ' + upErr.message); return; }
+
+  // 5) URL pública
+  const { data: pub } = supabase.storage.from('uploads').getPublicUrl(path);
+  const url = pub?.publicUrl || null;
+
+  // 6) Guardar metadatos en "items"
+  const { error: dbErr } = await supabase.from('items').insert({
+    title, week: +week, type, path, url, user_id: user.id,
+  });
+  if (dbErr) { alert('Error guardando metadatos: ' + dbErr.message); return; }
+
+  // 7) Refrescar UI (barra semanas + grid)
+  await loadRepoFromSupabase();           // ⬅️ función del siguiente paso
+  buildWeeksSidebar();
+  renderWeekGrid(+week);
+
+  alert('Archivo subido correctamente.');
+}
+
 
   // Guarda copia en IndexedDB (local)
   store.entries.push(meta);
