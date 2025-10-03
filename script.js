@@ -4,8 +4,8 @@
 // =====================
 
 // ======= CONFIGURA SUPABASE AQUÍ =======
-const SUPABASE_URL = 'https://oqrmtfxvhtmjyoekssgu.supabase.co';   // <-- cambia
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcm10Znh2aHRtanlvZWtzc2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxMjA3NjYsImV4cCI6MjA3NDY5Njc2Nn0.mdjAo_SdGt4KfnEuyXT8KVaJDA6iDVNbHLYmt22e-b0';                   // <-- cambia
+const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';   // <-- cambia
+const SUPABASE_ANON_KEY = 'TU_ANON_KEY';                   // <-- cambia
 
 // Cliente Supabase (usa <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> en index.html)
 const sb = window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -302,8 +302,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     };
   }
 
- 
-  
   // Folder picker (legacy local) — puedes dejarlo sin uso si migraste 100% a Supabase
   $('#btn-pick-folder')?.addEventListener('click', ()=>{
     alert('Con Supabase ya no necesitas carpeta local. Este botón es opcional.');
@@ -313,4 +311,5 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b=>b.onclick=(ev)=>closeModal(ev.target.closest('.modal-backdrop')));
   $$('#modal-login, #modal-preview').forEach(m=>m.onclick=(e)=>{ if(e.target.classList.contains('modal-backdrop')) closeModal(e.target); });
 });
+
 
