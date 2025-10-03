@@ -40,24 +40,36 @@ function ensureWeekOptions(sel){
     +Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join('');
 }
 
-// ===== Navegación =====
-function showView(name){
-  $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
-  $('#view-profile').classList.toggle('hidden', name !== 'profile');
+// ---- Navegación entre vistas (ÚNICA) ----
+function showView(name) {
+  const vp = document.getElementById('view-portfolio');
+  const vf = document.getElementById('view-profile');
 
-  markActiveNav(name);
-  toggleSecondSidebar(name === 'portfolio');
+  if (vp && vf) {
+    // muestra solo la vista pedida
+    vp.classList.toggle('hidden', name !== 'portfolio');
+    vf.classList.toggle('hidden', name !== 'profile');
+  }
 
-  if (name === 'portfolio') openWeek(store.currentWeek || 1);
-}
-
-function markActiveNav(name){
-  $$('button[data-nav]').forEach(b=>{
-    b.classList.toggle('active', b.dataset.nav === name);
-    if (b.dataset.nav === name) b.setAttribute('aria-current','page'); 
-    else b.removeAttribute('aria-current');
+  // marca activo en el menú lateral
+  document.querySelectorAll('button[data-nav]').forEach(b => {
+    const active = b.dataset.nav === name;
+    b.classList.toggle('active', active);
+    if (active) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
+
+  // sidebar de semanas solo en Portafolio (si tienes esta función)
+  if (typeof toggleSecondSidebar === 'function') {
+    toggleSecondSidebar(name === 'portfolio');
+  }
+
+  // si entras a Portafolio, abre la semana actual o 1
+  if (name === 'portfolio' && typeof openWeek === 'function') {
+    const w = (window.store && window.store.currentWeek) || 1;
+    openWeek(w);
+  }
 }
+
 // ==== Sidebar Semanas (mostrar/ocultar) ====
 function toggleSecondSidebar(show) {
   const sb2 = document.getElementById('sidebar-weeks');
@@ -450,13 +462,6 @@ window.showView = window.showView || function (name) {
     vp.classList.toggle('hidden', name !== 'portfolio');
     vf.classList.toggle('hidden', name !== 'profile');
   }
-
-  // nav activo
-  document.querySelectorAll('button[data-nav]').forEach(b => {
-    const active = b.dataset.nav === name;
-    b.classList.toggle('active', active);
-    if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
-  });
 
   // sidebar semanas solo en Portafolio
   toggleSecondSidebar?.(name === 'portfolio');
