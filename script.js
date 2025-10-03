@@ -441,15 +441,6 @@ function addAdminToolbar(cardNode, item) {
   }
 }
 
-// ===== Mostrar/Ocultar la segunda sidebar (semanas) =====
-function toggleSecondSidebar(show) {
-  const sb2 = $('#sidebar-weeks');
-  const main = $('#app-main');
-  if (!sb2 || !main) return;
-  sb2.classList.toggle('show', !!show);
-  sb2.style.display = show ? 'flex' : 'none';
-  main.classList.toggle('with-sidebar-2', !!show);
-}
 
 // ===== Mostrar vista (Portafolio / Perfil) y preparar semana inicial =====
 function showView(name){
