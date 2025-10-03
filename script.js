@@ -156,29 +156,32 @@ function createCard(item){
     openModal($('#modal-preview'));
   };
 
-  // Acciones admin (agregadas aquí para que respondan a cambios de sesión sin recargar)
-  const actionBar = node.querySelector('.flex.items-center.gap-1');
-  if (actionBar){
-    const btnEdit = document.createElement('button');
-    btnEdit.className = 'btn btn-ghost px-2 py-1 text-xs';
-    btnEdit.dataset.action = 'edit';
-    btnEdit.textContent = 'Editar';
-    btnEdit.style.display = store.isAdmin ? 'inline-flex':'none';
-    btnEdit.onclick = () => editEntry(item);
+ // Botones Admin (colócalos junto a Ver/Descargar)
+if (store.isAdmin) {
+  const actionsEl = node.querySelector('.flex.items-center.gap-1'); // contenedor de Ver/Descargar
+  if (actionsEl) {
+    actionsEl.style.flexWrap = 'wrap'; // por si no cabe en una línea
 
-    const btnDel  = document.createElement('button');
-    btnDel.className = 'btn btn-ghost px-2 py-1 text-xs';
-    btnDel.dataset.action = 'delete';
-    btnDel.textContent = 'Eliminar';
-    btnDel.style.display = store.isAdmin ? 'inline-flex':'none';
-    btnDel.onclick = () => deleteEntry(item);
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Editar';
+    editBtn.dataset.action = 'edit';
+    editBtn.className = 'btn btn-ghost px-2 py-1 text-xs';
+    editBtn.onclick = () => editEntry(item);
 
-    actionBar.appendChild(btnEdit);
-    actionBar.appendChild(btnDel);
+    const delBtn = document.createElement('button');
+    delBtn.textContent = 'Eliminar';
+    delBtn.dataset.action = 'delete';
+    delBtn.className = 'btn btn-ghost px-2 py-1 text-xs';
+    delBtn.onclick = () => deleteEntry(item);
+
+    actionsEl.appendChild(editBtn);
+    actionsEl.appendChild(delBtn);
   }
 
-  return node;
+  // Asegura que el card no derrame contenido
+  node.style.overflow = 'hidden';
 }
+
 
 // ---------- CRUD (solo Admin) ----------
 async function editEntry(item){
