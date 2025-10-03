@@ -1,10 +1,13 @@
-/* script.js (ESM) — copia y pega tal cual */
+/* script.js — versión NO módulo (usa window.supabase) */
 
-// === Supabase (ESM) ===
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-const SUPABASE_URL = "https://oqrmtfxvhtmjyoekssgu.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcm10Znh2aHRtanlvZWtzc2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxMjA3NjYsImV4cCI6MjA3NDY5Njc2Nn0.mdjAo_SdGt4KfnEuyXT8KVaJDA6iDVNbHLYmt22e-b0";
-const SB = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* ===== Supabase desde index.html =====
+   Asegúrate de tener en index.html, ANTES de este script:
+   <script type="module">
+     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+     window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+   </script>
+*/
+const SB = window.supabase || null;
 
 // ===== Estado =====
 const store = { entries: [], repoEntries: [], isAdmin:false, dirHandle:null, currentWeek: 1 };
@@ -12,7 +15,6 @@ const dbEntriesKey='entries'; const keyDirHandle='dirHandle'; const dbFileKey=id
 
 // ===== Utils =====
 const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.querySelectorAll(s)];
-const fmtBytes=b=>b<1024?b+' B':b<1024**2?(b/1024).toFixed(1)+' KB':b<1024**3?(b/1024**2).toFixed(1)+' MB':(b/1024**3).toFixed(1)+' GB';
 const openModal=el=>el&&(el.style.display='flex'); const closeModal=el=>el&&(el.style.display='none');
 
 const updateAuthUI=()=>{
@@ -41,6 +43,7 @@ function showView(name){
   if (name === 'portfolio') openWeek(store.currentWeek || 1);
 }
 
+// ===== Sidebar semanas =====
 function toggleSecondSidebar(show) {
   const sb2 = $('#sidebar-weeks'); const main = $('#app-main');
   if (!sb2 || !main) return;
@@ -59,7 +62,7 @@ async function loadRepoManifest(){
   }catch(e){ /* sin manifest */ }
 }
 
-// ===== File System Access API (opcional para admin local) =====
+// ===== File System Access API (opcional admin local) =====
 async function verifyPermission(handle,mode='readwrite'){ if(!handle) return false; const opts={mode};
   if((await handle.queryPermission(opts))==='granted') return true;
   if((await handle.requestPermission(opts))==='granted') return true;
@@ -102,7 +105,7 @@ async function saveFileToFolder(file, filename){
   const w=await fh.createWritable(); await w.write(file); await w.close();
 }
 
-// ===== Thumbnails =====
+// ===== Thumbnails PDF =====
 async function renderPdfThumb(url, imgEl){
   try{
     const pdf=await pdfjsLib.getDocument({url}).promise; const page=await pdf.getPage(1);
@@ -135,7 +138,7 @@ function createCard(item){
   return node;
 }
 
-// ===== Barra de semanas (solo botones) =====
+// ===== Barra de semanas (botones) =====
 function buildWeeksSidebar(){
   const nav = $('#weeks-nav'); if (!nav) return;
   nav.innerHTML = '';
@@ -168,12 +171,7 @@ function renderWeekGrid(week){
   }
   items.forEach(it=>grid.appendChild(createCard(it)));
 }
-
-// Abre semana (solo centro)
-function openWeek(w){
-  store.currentWeek = w;
-  renderWeekGrid(w); // solo Dashboard (la barra 2 NO lista archivos)
-}
+function openWeek(w){ store.currentWeek = w; renderWeekGrid(w); }
 
 // ===== CRUD + Auto actualización de index.json local =====
 async function addEntry({ title, week, file }) {
@@ -194,26 +192,30 @@ async function addEntry({ title, week, file }) {
     await writeLocalManifest(manifest);
   }
 
-  // Refresca UI
-  await loadRepoManifest();        // recarga publicados si ya subiste a uploads/
+  await loadRepoManifest();
   buildWeeksSidebar();
   if (store.currentWeek === meta.week) renderWeekGrid(store.currentWeek);
 
   alert('Archivo guardado. Si conectaste uploads/, ya se actualizó index.json. Recuerda hacer git add/commit/push.');
 }
 
-// ===== SUPABASE AUTH helpers =====
+// ===== SUPABASE AUTH (usa SB de window) =====
 async function sbSignIn(email, password) {
+  if(!SB) throw new Error('Supabase no está disponible. Revisa el <script type="module"> en index.html');
   const { data, error } = await SB.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
 }
-async function sbSignOut() { await SB.auth.signOut(); }
-
-SB.auth.onAuthStateChange((_event, session) => {
-  store.isAdmin = !!session;
-  updateAuthUI();
-});
+async function sbSignOut() {
+  if(!SB) return;
+  await SB.auth.signOut();
+}
+if (SB) {
+  SB.auth.onAuthStateChange((_event, session) => {
+    store.isAdmin = !!session;
+    updateAuthUI();
+  });
+}
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async ()=>{
@@ -227,11 +229,17 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   openWeek(1);
 
   updateAuthUI();
+
+  // Navegación
   $$('button[data-nav]').forEach(b=>b.onclick=()=>showView(b.dataset.nav));
   showView('portfolio');
 
-  // Login modal open/close
-  document.getElementById('btn-login')?.addEventListener('click', ()=>openModal(document.getElementById('modal-login')));
+  // Abrir modal login
+  document.getElementById('btn-login')?.addEventListener('click', ()=>{
+    openModal(document.getElementById('modal-login'));
+  });
+
+  // Cerrar sesión
   document.getElementById('btn-logout')?.addEventListener('click', sbSignOut);
 
   // Login submit (Supabase)
@@ -250,7 +258,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     };
   }
 
-  // Upload (solo visible si isAdmin por CSS/UI)
+  // Subida (solo visible si admin)
   document.getElementById('upload-form')?.addEventListener('submit', async (e)=>{
     e.preventDefault();
     const title=$('#title-input').value.trim();
@@ -264,7 +272,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   // Folder picker
   document.getElementById('btn-pick-folder')?.addEventListener('click', pickFolder);
 
-  // Close modals by buttons/backdrop
+  // Cerrar modales (botón y backdrop)
   $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b=>b.onclick=(ev)=>closeModal(ev.target.closest('.modal-backdrop')));
   $$('#modal-login, #modal-preview').forEach(m=>m.onclick=(e)=>{ if(e.target.classList.contains('modal-backdrop')) closeModal(e.target); });
 });
