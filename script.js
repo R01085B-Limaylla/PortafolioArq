@@ -453,15 +453,6 @@ function addAdminToolbar(cardNode, item) {
   }
 }
 
-// usa SOLO en la segunda aparición, para no redeclarar:
-window.showView = window.showView || function (name) {
-  const vp = document.getElementById('view-portfolio');
-  const vf = document.getElementById('view-profile');
-
-  if (vp && vf) {
-    vp.classList.toggle('hidden', name !== 'portfolio');
-    vf.classList.toggle('hidden', name !== 'profile');
-  }
 
   // sidebar semanas solo en Portafolio
   toggleSecondSidebar?.(name === 'portfolio');
