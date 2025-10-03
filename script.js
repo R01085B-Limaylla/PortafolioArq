@@ -4,8 +4,8 @@
 // =====================
 
 // ======= CONFIGURA SUPABASE AQUÍ =======
-const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';   // <-- cambia
-const SUPABASE_ANON_KEY = 'TU_ANON_KEY';                   // <-- cambia
+const SUPABASE_URL = 'https://oqrmtfxvhtmjyoekssgu.supabase.co';   // <-- cambia
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xcm10Znh2aHRtanlvZWtzc2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxMjA3NjYsImV4cCI6MjA3NDY5Njc2Nn0.mdjAo_SdGt4KfnEuyXT8KVaJDA6iDVNbHLYmt22e-b0';                   // <-- cambia
 
 // Cliente Supabase (usa <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> en index.html)
 const sb = window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
