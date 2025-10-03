@@ -177,25 +177,25 @@ async function loadRepoFromSupabase(){
 
 // ===== SUPABASE AUTH helpers =====
 async function sbSignUp(email, password) {
-  const { data, error } = await SB.auth.signUp({ email, password });
+  const { data, error } = await sb.auth.signUp({ email, password });
   if (error) throw error;
   return data;
 }
 async function sbSignIn(email, password) {
-  const { data, error } = await SB.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
 }
 async function sbSignOut() {
-  await SB.auth.signOut();
+  await sb.auth.signOut();
 }
 // Refrescar UI al cambiar sesión
 if (sb?.auth) {
-  SB.auth.onAuthStateChange((_event, session) => {
-  const isLogged = !!session;
-  store.isAdmin = isLogged;
-  updateAuthUI();
-});
+  sb.auth.onAuthStateChange((_event, session) => {
+    store.isAdmin = !!session;
+    updateAuthUI();
+  });
+}
 
 // ===== SUBIR a Supabase (reemplaza admin local) =====
 async function addEntry({ title, week, file }){
