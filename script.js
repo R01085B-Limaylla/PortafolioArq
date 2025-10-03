@@ -58,14 +58,16 @@ function markActiveNav(name){
     else b.removeAttribute('aria-current');
   });
 }
+// ==== Sidebar Semanas (mostrar/ocultar) ====
 function toggleSecondSidebar(show) {
-  const sb2 = $('#sidebar-weeks');
-  const main = $('#app-main');
+  const sb2 = document.getElementById('sidebar-weeks');
+  const main = document.getElementById('app-main');
   if (!sb2 || !main) return;
   sb2.classList.toggle('show', !!show);
   sb2.style.display = show ? 'flex' : 'none';
   main.classList.toggle('with-sidebar-2', !!show);
 }
+
 
 // ===== Supabase: listado remoto =====
 async function loadRepoManifest(){
