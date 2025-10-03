@@ -2,12 +2,6 @@
 //  Portafolio – script.js (Supabase + UI)
 //  Reemplaza COMPLETO tu script.js con este archivo
 // =====================
-// Reutiliza el cliente creado en index.html
-const SB = window.supabase; // alias corto
-
-if (!SB) {
-  console.error('Supabase no está disponible. Revisa el orden de los <script>.');
-}
 
 // ======= CONFIGURA SUPABASE AQUÍ =======
 const SUPABASE_URL = 'https://oqrmtfxvhtmjyoekssgu.supabase.co';   // <-- cambia
