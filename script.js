@@ -302,20 +302,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     };
   }
 
-document.getElementById('login-form').onsubmit = async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('login-user').value.trim();
-  const pass  = document.getElementById('login-pass').value.trim();
-  try {
-    await sbSignIn(email, pass);
-    closeModal(document.getElementById('modal-login'));
-  } catch (err) {
-    alert('No se pudo iniciar sesión: ' + err.message);
-  }
-};
-
-document.getElementById('btn-logout').onclick = sbSignOut;
-  
+ 
   
   // Folder picker (legacy local) — puedes dejarlo sin uso si migraste 100% a Supabase
   $('#btn-pick-folder')?.addEventListener('click', ()=>{
