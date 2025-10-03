@@ -535,3 +535,47 @@ button[data-nav].active{ background: rgba(255,255,255,.10); border:1px solid var
 /* Contenedor del thumbnail debe ser relative para overlay */
 .card .aspect-video{ position:relative; }
 
+/* --- Perfil: mejoras responsive --- */
+
+/* Limita el ancho del contenido para que no “salte” */
+#view-profile .card, 
+#view-profile .profile-hero { 
+  width: 100%;
+}
+
+/* Evita desbordes de texto largos (URLs o nombres) */
+#view-profile .flex-1, 
+#view-profile p, 
+#view-profile h2 {
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Ajusta la altura del cover según pantalla */
+.profile-cover { height: 140px; }
+@media (min-width: 640px) { .profile-cover { height: 160px; } }
+@media (min-width: 1024px){ .profile-cover { height: 180px; } }
+
+/* Avatar responsivo (las utilidades Tailwind ya hicieron la mayor parte) */
+.profile-avatar {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Botones sociales: aseguran saltos ordenados y nunca “rompen” el layout */
+.btn-social {
+  white-space: nowrap;
+}
+
+/* Chips: evitan desbordes en móvil */
+.chip, .chip-primary {
+  white-space: nowrap;
+}
+
+/* Espaciado un poco más compacto en móviles */
+@media (max-width: 639px) {
+  #view-profile .card { padding: .9rem; }
+  #view-profile .btn-social { padding: .4rem .7rem; font-size: .85rem; }
+}
+
