@@ -268,8 +268,19 @@ openWeek(store.currentWeek || 1);
 
   // Login
   document.getElementById('btn-login').onclick=()=>openModal(document.getElementById('modal-login'));
-  document.getElementById('btn-logout').onclick=()=>{ store.isAdmin=false; localStorage.removeItem('isAdmin'); updateAuthUI(); };
-  document.getElementById('login-form').onsubmit=(e)=>{ e.preventDefault(); const u=$('#login-user').value.trim(); const p=$('#login-pass').value.trim(); if(u==='admin'&&p==='admin123'){store.isAdmin=true; localStorage.setItem('isAdmin','1'); updateAuthUI(); closeModal(document.getElementById('modal-login'));} else alert('Credenciales inválidas'); };
+  document.getElementById('btn-logout').onclick = sbSignOut;
+  document.getElementById('login-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('login-user').value.trim();
+    const pass  = document.getElementById('login-pass').value.trim();
+    try {
+      await sbSignIn(email, pass);
+      closeModal(document.getElementById('modal-login'));  // tu función ya existente
+    } catch (err) {
+      alert('No se pudo iniciar sesión: ' + err.message);
+    }
+  };
+
 
   // Upload
   document.getElementById('upload-form').onsubmit=async(e)=>{ e.preventDefault();
