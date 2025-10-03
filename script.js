@@ -41,7 +41,7 @@ function ensureWeekOptions(sel){
 }
 
 // ---- Navegación entre vistas (definición única) ----
-window.showView = window.showView || function (name) {
+window.showView = function (name) {
   const vp = document.getElementById('view-portfolio');
   const vf = document.getElementById('view-profile');
 
@@ -51,15 +51,15 @@ window.showView = window.showView || function (name) {
   }
 
   // marcar activo en el menú lateral
-  document.querySelectorAll('button[data-nav]').forEach(b => {
-    const active = b.dataset.nav === name;
-    b.classList.toggle('active', active);
-    if (active) {
-      b.setAttribute('aria-current','page');
-    } else {
-      b.removeAttribute('aria-current');
-    }
-  });
+ function toggleSecondSidebar(show) {
+  const sb2 = document.getElementById('sidebar-weeks');
+  const main = document.getElementById('app-main');
+  if (!sb2 || !main) return;
+  sb2.classList.toggle('show', !!show);
+  sb2.style.display = show ? 'flex' : 'none';
+  main.classList.toggle('with-sidebar-2', !!show);
+}
+
 
   // sidebar de semanas solo en Portafolio
   if (typeof toggleSecondSidebar === 'function') {
@@ -71,8 +71,7 @@ window.showView = window.showView || function (name) {
     const w = (window.store && window.store.currentWeek) || 1;
     openWeek(w);
   }
-}; // 👈 aquí CIERRA bien la función
-
+};
 
 // ==== Sidebar Semanas (mostrar/ocultar) ====
 function toggleSecondSidebar(show) {
