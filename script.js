@@ -1,5 +1,23 @@
+// =====================
+//  Portafolio – script.js (Supabase + UI)
+//  Reemplaza COMPLETO tu script.js con este archivo
+// =====================
+
+// ======= CONFIGURA SUPABASE AQUÍ =======
+const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';   // <-- cambia
+const SUPABASE_ANON_KEY = 'TU_ANON_KEY';                   // <-- cambia
+
+// Cliente Supabase (usa <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> en index.html)
+const sb = window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // ===== Estado =====
-const store = { entries: [], repoEntries: [], isAdmin:false, dirHandle:null };
+const store = {
+  entries: [],        // (local, ya no se usa para render si usas Supabase)
+  repoEntries: [],    // elementos publicados (de Supabase)
+  isAdmin: false,     // se activa si hay sesión de Supabase
+  dirHandle: null,    // opcional, si sigues usando carpeta local
+  currentWeek: 1
+};
 const dbEntriesKey='entries'; const keyDirHandle='dirHandle'; const dbFileKey=id=>`file:${id}`;
 
 // ===== Utils =====
@@ -7,39 +25,38 @@ const $=(s,el=document)=>el.querySelector(s); const $$=(s,el=document)=>[...el.q
 const fmtBytes=b=>b<1024?b+' B':b<1024**2?(b/1024).toFixed(1)+' KB':b<1024**3?(b/1024**2).toFixed(1)+' MB':(b/1024**3).toFixed(1)+' GB';
 const openModal=el=>el.style.display='flex'; const closeModal=el=>el.style.display='none';
 
-const updateAuthUI=()=>{ $('#btn-login').classList.toggle('hidden',store.isAdmin); $('#btn-logout').classList.toggle('hidden',!store.isAdmin); $('#admin-tools').classList.toggle('hidden',!store.isAdmin); };
+function updateAuthUI(){
+  $('#btn-login')?.classList.toggle('hidden',store.isAdmin);
+  $('#btn-logout')?.classList.toggle('hidden',!store.isAdmin);
+  $('#admin-tools')?.classList.toggle('hidden',!store.isAdmin);
+}
 
-async function persistEntries(){ await idbKeyval.set(dbEntriesKey, store.entries); }
-async function loadEntries(){ store.entries = (await idbKeyval.get(dbEntriesKey)) || []; }
-async function saveDirHandle(handle){ try{ await idbKeyval.set(keyDirHandle, handle);}catch(e){} }
-async function loadDirHandle(){ try{ store.dirHandle = await idbKeyval.get(keyDirHandle) || null;}catch(e){} }
+// IndexedDB helpers (por compatibilidad con tu código previo)
+async function persistEntries(){ if (window.idbKeyval) await idbKeyval.set(dbEntriesKey, store.entries); }
+async function loadEntries(){ store.entries = (window.idbKeyval ? (await idbKeyval.get(dbEntriesKey)) || [] : []); }
+async function saveDirHandle(handle){ try{ if(window.idbKeyval) await idbKeyval.set(keyDirHandle, handle);}catch(e){} }
+async function loadDirHandle(){ try{ store.dirHandle = (window.idbKeyval ? (await idbKeyval.get(keyDirHandle)) : null) || null;}catch(e){} }
 
-function ensureWeekOptions(sel){ sel.innerHTML='<option value="" disabled selected>Semana…</option>'+Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join(''); }
+function ensureWeekOptions(sel){
+  if (!sel) return;
+  sel.innerHTML='<option value="" disabled selected>Semana…</option>'
+    + Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join('');
+}
 
 function showView(name){
-  $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
-  $('#view-profile').classList.toggle('hidden', name !== 'profile');
-
+  $('#view-portfolio')?.classList.toggle('hidden', name !== 'portfolio');
+  $('#view-profile')?.classList.toggle('hidden', name !== 'profile');
   // marcar nav activo
   $$('button[data-nav]').forEach(b=>{
     b.classList.toggle('active', b.dataset.nav === name);
     if (b.dataset.nav === name) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
-
   // mostrar barra semanas solo en Portafolio
   toggleSecondSidebar(name === 'portfolio');
-
-  // siempre abrir una semana cuando entras a Portafolio
+  // abrir semana actual
   if (name === 'portfolio') openWeek(store.currentWeek || 1);
 }
 
-
-function markActiveNav(name){
-  $$('button[data-nav]').forEach(b=>{
-    b.classList.toggle('active', b.dataset.nav === name);
-    if (b.dataset.nav === name) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
-  });
-}
 function toggleSecondSidebar(show) {
   const sb2 = $('#sidebar-weeks');
   const main = $('#app-main');
@@ -49,278 +66,51 @@ function toggleSecondSidebar(show) {
   main.classList.toggle('with-sidebar-2', !!show);
 }
 
-
-// ===== Manifest remoto =====
-async function loadRepoManifest(){
-  try{ const r=await fetch('uploads/index.json',{cache:'no-store'}); if(!r.ok) return;
-    const d=await r.json(); store.repoEntries=(d.items||[]).map(it=>({title:it.title||it.name,name:it.name,week:+it.week,type:it.type,url:it.url}));
-  }catch(e){ /* sin manifest */ }
-}
-
-// ===== File System Access API =====
-async function verifyPermission(handle,mode='readwrite'){ if(!handle) return false; const opts={mode};
-  if((await handle.queryPermission(opts))==='granted') return true;
-  if((await handle.requestPermission(opts))==='granted') return true;
-  return false;
-}
-async function pickFolder(){
-  if(!window.showDirectoryPicker){ alert('Tu navegador no soporta elegir carpeta. Usa Chrome/Edge.'); return; }
-  try{ const dir=await window.showDirectoryPicker({id:'uploads-folder'});
-    const ok=await verifyPermission(dir,'readwrite'); if(!ok) return;
-    store.dirHandle=dir; await saveDirHandle(dir); $('#folder-status').textContent='Carpeta conectada ✔';
-    // Garantiza que exista index.json
-    await ensureManifestFile();
-  }catch(e){ console.error(e); }
-}
-
-async function ensureManifestFile(){
-  if(!store.dirHandle) return;
-  const ok=await verifyPermission(store.dirHandle,'readwrite'); if(!ok) return;
-  try{ await store.dirHandle.getFileHandle('index.json'); } // existe
-  catch{ // crearlo vacío
-    const f=await store.dirHandle.getFileHandle('index.json',{create:true});
-    const w=await f.createWritable(); await w.write(JSON.stringify({items:[]},null,2)); await w.close();
+// ===== Thumbnails (PDF.js) =====
+async function renderPdfThumb(url, imgEl){
+  try{
+    const pdf=await pdfjsLib.getDocument({url}).promise;
+    const page=await pdf.getPage(1);
+    const vp=page.getViewport({scale:1.0});
+    const scale=Math.min(640/vp.width,1.5);
+    const v=page.getViewport({scale});
+    const c=document.createElement('canvas');
+    c.width=v.width; c.height=v.height;
+    await page.render({canvasContext:c.getContext('2d',{alpha:false}), viewport:v}).promise;
+    imgEl.src=c.toDataURL('image/png');
+    imgEl.classList.remove('hidden');
+  }catch(e){
+    // usa icono PDF si falla
   }
 }
 
-async function readLocalManifest(){
-  if(!store.dirHandle) return {items:[]};
-  const ok=await verifyPermission(store.dirHandle,'read'); if(!ok) return {items:[]};
-  try{ const fh=await store.dirHandle.getFileHandle('index.json'); const f=await fh.getFile(); const txt=await f.text(); return JSON.parse(txt||'{}'); }
-  catch(e){ return {items:[]}; }
-}
-
-async function writeLocalManifest(manifest){
-  if(!store.dirHandle) return;
-  const ok=await verifyPermission(store.dirHandle,'readwrite'); if(!ok) return;
-  const fh=await store.dirHandle.getFileHandle('index.json',{create:true});
-  const w=await fh.createWritable(); await w.write(JSON.stringify(manifest,null,2)); await w.close();
-}
-
-async function saveFileToFolder(file, filename){
-  if(!store.dirHandle) return;
-  const ok=await verifyPermission(store.dirHandle,'readwrite'); if(!ok) return;
-  const fh=await store.dirHandle.getFileHandle(filename,{create:true});
-  const w=await fh.createWritable(); await w.write(file); await w.close();
-}
-
-// ===== Thumbnails =====
-async function renderPdfThumb(url, imgEl){
-  try{ const pdf=await pdfjsLib.getDocument({url}).promise; const page=await pdf.getPage(1);
-    const vp=page.getViewport({scale:1.0}); const scale=Math.min(640/vp.width,1.5); const v=page.getViewport({scale});
-    const c=document.createElement('canvas'); c.width=v.width; c.height=v.height;
-    await page.render({canvasContext:c.getContext('2d',{alpha:false}), viewport:v}).promise;
-    imgEl.src=c.toDataURL('image/png'); imgEl.classList.remove('hidden');
-  }catch(e){ /* deja icono PDF */ }
-}
-
-// ===== Cards =====
+// ===== Cards (grid central) =====
 function createCard(item){
   const tpl=$('#card-template'); const node=tpl.content.firstElementChild.cloneNode(true);
   const img=$('[data-role=thumb]',node); const pdfCover=$('[data-role=pdfcover]',node);
   const title=$('[data-role=title]',node); const meta=$('[data-role=meta]',node);
   const btnPrev=$('[data-action=preview]',node); const aDownload=$('[data-role=download]',node);
 
-  title.textContent=item.title||item.name; meta.textContent=`${item.type.toUpperCase()} · Semana ${item.week}`;
-  aDownload.href=item.url; aDownload.download=item.name;
+  title.textContent=item.title||item.name;
+  meta.textContent=`${item.type?.toUpperCase?.()||'FILE'} · Semana ${item.week}`;
+  aDownload.href=item.url; aDownload.download=item.name||'archivo';
 
   if(item.type==='image'){ img.src=item.url; img.onload=()=>img.classList.remove('hidden'); }
   else { renderPdfThumb(item.url,img).then(()=>{ if(!img.src) pdfCover.classList.remove('hidden'); }); }
 
   btnPrev.onclick=()=>{ const cont=$('#preview-container'); cont.innerHTML='';
-    if(item.type==='image'){ const im=new Image(); im.src=item.url; im.className='w-full h-full object-contain bg-black'; cont.appendChild(im); }
-    else { const ifr=document.createElement('iframe'); ifr.src=item.url; ifr.className='w-full h-full'; cont.appendChild(ifr); }
+    if(item.type==='image'){
+      const im=new Image(); im.src=item.url; im.className='w-full h-full object-contain bg-black'; cont.appendChild(im);
+    }else{
+      const ifr=document.createElement('iframe'); ifr.src=item.url; ifr.className='w-full h-full'; cont.appendChild(ifr);
+    }
     openModal($('#modal-preview'));
   };
 
   return node;
 }
 
-// ===== Render =====
-function renderAccordion(){
-  const acc=$('#weeks-accordion'); acc.innerHTML='';
-  for(let w=1; w<=16; w++){
-    const sec=document.createElement('section'); sec.className='card p-0';
-    const head=document.createElement('button'); head.className='accordion-btn w-full flex items-center justify-between p-4';
-    const items=store.repoEntries.filter(e=>+e.week===w);
-    head.innerHTML=`<div class="flex items-center gap-3"><span class="tag">Semana ${w}</span><span class="text-sm text-slate-400">${items.length} elementos</span></div><span>▸</span>`;
-    const panel=document.createElement('div'); panel.className='accordion-panel px-4 pb-4';
-    const list=document.createElement('div'); list.className='grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4';
-
-    if(items.length===0){ const empty=document.createElement('div'); empty.className='text-sm text-slate-400 border border-dashed border-white/10 rounded-xl p-6 text-center'; empty.textContent='Sin elementos aún'; list.appendChild(empty); }
-    else { items.forEach(it=>list.appendChild(createCard(it))); }
-
-    panel.appendChild(list);
-    head.onclick=()=>{ const open=panel.classList.toggle('open'); head.querySelector('span:last-child').textContent=open?'▾':'▸'; };
-    sec.appendChild(head); sec.appendChild(panel); acc.appendChild(sec);
-  }
-}
-
-// ===== SUPABASE UPLOAD & DB =====
-async function addEntry({ title, week, file }) {
-  // 1) Autenticación requerida para subir
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) { alert('Debes iniciar sesión.'); return; }
-
-  // 2) Tipo
-  const type = file.type.startsWith('image/') ? 'image' : 'pdf';
-
-  // 3) Ruta en el bucket (por semana)
-  const safe = file.name.replace(/\s+/g, '_');
-  const path = `week-${week}/${Date.now()}_${safe}`;
-
-  // 4) Subir a Storage
-  const { error: upErr } = await supabase.storage.from('uploads').upload(path, file, { upsert: false });
-  if (upErr) { alert('Error subiendo a Storage: ' + upErr.message); return; }
-
-  // 5) URL pública
-  const { data: pub } = supabase.storage.from('uploads').getPublicUrl(path);
-  const url = pub?.publicUrl || null;
-
-  // 6) Guardar metadatos en "items"
-  const { error: dbErr } = await supabase.from('items').insert({
-    title, week: +week, type, path, url, user_id: user.id,
-  });
-  if (dbErr) { alert('Error guardando metadatos: ' + dbErr.message); return; }
-
-  // 7) Refrescar UI (barra semanas + grid)
-  await loadRepoFromSupabase();           // ⬅️ función del siguiente paso
-  buildWeeksSidebar();
-  renderWeekGrid(+week);
-
-  alert('Archivo subido correctamente.');
-}
-
-
-  // Guarda copia en IndexedDB (local)
-  store.entries.push(meta);
-  await idbKeyval.set(dbFileKey(id), file);
-  await persistEntries();
-
-  // Si hay carpeta conectada, guarda el archivo físico y actualiza index.json
-  if (store.dirHandle) {
-    await saveFileToFolder(file, meta.name);
-
-    const manifest = await readLocalManifest();
-    const idx = (manifest.items || []).findIndex(x => x.name === meta.name);
-    const item = {
-      title: meta.title,
-      week: meta.week,
-      type: meta.type,
-      name: meta.name,
-      url: `uploads/${meta.name}`
-    };
-    if (idx >= 0) manifest.items[idx] = item;
-    else (manifest.items || (manifest.items = [])).push(item);
-
-    await writeLocalManifest(manifest);
-  }
-
-  // 🔄 Refresca UI: contadores y listas de la semana seleccionada
-  buildWeeksSidebar();
-  if (store.currentWeek === meta.week) {
-    renderWeekGrid(store.currentWeek);
-    renderFilesSidebar(store.currentWeek);
-  }
-
-  alert('Archivo guardado. Si conectaste uploads/, ya se actualizó index.json. Recuerda hacer git add/commit/push.');
-}
-// ===== SUPABASE AUTH =====
-async function sbSignUp(email, password) {
-  const { data, error } = await sb.auth.signUp({ email, password });
-  if (error) throw error;
-  return data;
-}
-
-async function sbSignIn(email, password) {
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  return data;
-}
-
-async function sbSignOut() {
-  await sb.auth.signOut();
-}
-
-// Refrescar UI al cambiar sesión
-sb.auth.onAuthStateChange((_event, session) => {
-  const isLogged = !!session;
-  store.isAdmin = isLogged;     // tu variable global que activa el modo admin
-  updateAuthUI();               // tu función que muestra/oculta #admin-tools
-});
-
-// ===== Init =====
-document.addEventListener('DOMContentLoaded', async ()=>{
-  ensureWeekOptions(document.getElementById('week-select'));
-  await loadEntries();
-await loadDirHandle();
-await loadRepoManifest();
-
-document.addEventListener('DOMContentLoaded', async ()=>{
-  ensureWeekOptions(document.getElementById('week-select'));
-
-  await loadEntries();
-  await loadDirHandle();
-  await loadRepoManifest();
-
-  // ✨ construir botones de semanas y mostrar semana 1 para todos
-  buildWeeksSidebar();
-  openWeek(1);
-
-  // (si tienes aún renderAccordion() del diseño viejo, puedes quitarlo u ocultarlo)
-  // renderAccordion();
-
-  store.isAdmin = localStorage.getItem('isAdmin')==='1';
-  updateAuthUI();
-
-  $$('button[data-nav]').forEach(b=>b.onclick=()=>showView(b.dataset.nav));
-  showView('portfolio');
-
-  // ... resto: login, upload, picker, etc.
-});
-
-
-// construir barra secundaria (Semana 1..16) y abrir la semana actual (o 1)
-buildWeeksSidebar();
-openWeek(store.currentWeek || 1);
-
-
-  store.isAdmin = localStorage.getItem('isAdmin')==='1'; updateAuthUI();
-  $$('button[data-nav]').forEach(b=>b.onclick=()=>showView(b.dataset.nav)); showView('portfolio');
-
-  // Login
-  document.getElementById('btn-login').onclick=()=>openModal(document.getElementById('modal-login'));
-  document.getElementById('btn-logout').onclick = sbSignOut;
-  document.getElementById('login-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-user').value.trim();
-    const pass  = document.getElementById('login-pass').value.trim();
-    try {
-      await sbSignIn(email, pass);
-      closeModal(document.getElementById('modal-login'));  // tu función ya existente
-    } catch (err) {
-      alert('No se pudo iniciar sesión: ' + err.message);
-    }
-  };
-
-
-  // Upload
-  document.getElementById('upload-form').onsubmit=async(e)=>{ e.preventDefault();
-    const title=$('#title-input').value.trim(); const week=$('#week-select').value; const file=$('#file-input').files[0];
-    if(!title||!week||!file) return alert('Completa título, semana y archivo.');
-    await addEntry({title,week,file});
-    e.target.reset(); $('#week-select').value='';
-  };
-
-  // Folder picker
-  document.getElementById('btn-pick-folder').onclick=pickFolder;
-
-  // Close modals
-  $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b=>b.onclick=(ev)=>closeModal(ev.target.closest('.modal-backdrop')));
-  $$('#modal-login, #modal-preview').forEach(m=>m.onclick=(e)=>{ if(e.target.classList.contains('modal-backdrop')) closeModal(e.target); });
-});
-
-// Botones Semana 1–16 en la barra 2
+// ===== Sidebar Semanas =====
 function buildWeeksSidebar(){
   const nav = $('#weeks-nav'); if (!nav) return;
   nav.innerHTML = '';
@@ -342,33 +132,7 @@ function buildWeeksSidebar(){
   }
 }
 
-// Lista compacta en la barra 2
-function renderFilesSidebar(week){
-  const box = $('#weeks-files'); if (!box) return;
-  box.innerHTML = '';
-  const items = store.repoEntries.filter(e => +e.week === +week)
-    .sort((a,b) => (a.title||a.name).localeCompare(b.title||b.name));
-  if (!items.length){
-    const empty=document.createElement('div'); empty.className='empty'; empty.textContent='No hay archivos en esta semana'; box.appendChild(empty); return;
-  }
-  for (const it of items){
-    const row=document.createElement('div'); row.className='file-mini';
-    row.innerHTML=`
-      <div class="ico">${it.type==='image'?'🖼️':'📄'}</div>
-      <div><div class="title" style="font-weight:700; font-size:.86rem">${it.title||it.name}</div><div class="meta">${it.type.toUpperCase()}</div></div>
-      <div class="spacer"></div>
-      <div class="act"><button type="button" data-action="prev">Ver</button><a href="${it.url}" download="${it.name}">Desc.</a></div>`;
-    row.querySelector('[data-action="prev"]').onclick=()=>{
-      const cont=$('#preview-container'); cont.innerHTML='';
-      if (it.type==='image'){ const im=new Image(); im.src=it.url; im.className='w-full h-full object-contain bg-black'; cont.appendChild(im);}
-      else { const ifr=document.createElement('iframe'); ifr.src=it.url; ifr.className='w-full h-full'; cont.appendChild(ifr);}
-      openModal($('#modal-preview'));
-    };
-    box.appendChild(row);
-  }
-}
-
-// Grid del centro
+// ===== Grid del centro (Dashboard) =====
 function renderWeekGrid(week){
   const grid = $('#files-grid'); if (!grid) return;
   grid.innerHTML='';
@@ -382,6 +146,169 @@ function renderWeekGrid(week){
 // Abre semana (solo centro)
 function openWeek(w){
   store.currentWeek = w;
-  renderWeekGrid(w);   // solo renderiza en el Dashboard
-  // ❌ quitar la llamada a renderFilesSidebar(w);
+  renderWeekGrid(w);   // solo Dashboard (no mostramos lista en la barra 2)
 }
+
+// ===== SUPABASE: leer listado (público) =====
+async function loadRepoFromSupabase(){
+  if (!sb) { console.warn('Supabase no inicializado.'); return; }
+  store.repoEntries = [];
+  for (let w=1; w<=16; w++){
+    const folder = `semana${w}`;  // ajusta si usas otra convención
+    const { data: list, error } = await sb.storage.from('uploads').list(folder, { limit: 100 });
+    if (error) { console.warn('LIST error', folder, error.message); continue; }
+    if (!list) continue;
+
+    for (const obj of list){
+      const path = `${folder}/${obj.name}`;
+      const { data: pub } = sb.storage.from('uploads').getPublicUrl(path);
+      const lower = obj.name.toLowerCase();
+      const type = (/\.(png|jpg|jpeg|gif|webp)$/i.test(lower)) ? 'image' : 'pdf';
+      store.repoEntries.push({
+        title: obj.name,
+        name: obj.name,
+        week: w,
+        type,
+        url: pub.publicUrl
+      });
+    }
+  }
+}
+
+// ===== SUPABASE AUTH helpers =====
+async function sbSignUp(email, password) {
+  const { data, error } = await sb.auth.signUp({ email, password });
+  if (error) throw error;
+  return data;
+}
+async function sbSignIn(email, password) {
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+async function sbSignOut() {
+  await sb.auth.signOut();
+}
+// Refrescar UI al cambiar sesión
+if (sb?.auth) {
+  sb.auth.onAuthStateChange((_event, session) => {
+    store.isAdmin = !!session;
+    updateAuthUI();
+  });
+}
+
+// ===== SUBIR a Supabase (reemplaza admin local) =====
+async function addEntry({ title, week, file }){
+  // Requiere estar logueado
+  const { data: sessionData } = await sb.auth.getSession();
+  if (!sessionData?.session) {
+    alert('Debes iniciar sesión para subir.');
+    return;
+  }
+
+  const safeName = file.name.replace(/\s+/g,'_');
+  const path = `semana${week}/${Date.now()}_${safeName}`;
+
+  const { data: up, error: upErr } = await sb.storage
+    .from('uploads')
+    .upload(path, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
+
+  if (upErr) {
+    alert('Error subiendo a Supabase: ' + upErr.message);
+    return;
+  }
+
+  // URL pública
+  const { data: pub } = sb.storage.from('uploads').getPublicUrl(path);
+  const type = file.type.startsWith('image/') ? 'image' : 'pdf';
+
+  // Inserta en el arreglo y refresca UI
+  const meta = {
+    title: title || file.name,
+    name: up?.path?.split('/').pop() || file.name,
+    week: +week,
+    type,
+    url: pub.publicUrl
+  };
+  store.repoEntries.push(meta);
+
+  // refresca conteos y listas en la barra y el centro
+  buildWeeksSidebar();
+  if (store.currentWeek === meta.week) {
+    renderWeekGrid(store.currentWeek);
+  }
+
+  alert('Archivo subido a Supabase 👍');
+}
+
+// ===== Init =====
+document.addEventListener('DOMContentLoaded', async ()=>{
+  ensureWeekOptions(document.getElementById('week-select'));
+
+  await loadEntries();          // opcional (legacy)
+  await loadDirHandle();        // opcional (legacy)
+  if (sb) await loadRepoFromSupabase();  // carga desde Supabase
+  buildWeeksSidebar();
+  openWeek(1);
+
+  // Intenta obtener sesión actual de Supabase para activar admin-tools
+  if (sb?.auth) {
+    const { data: { session } } = await sb.auth.getSession();
+    store.isAdmin = !!session;
+  }
+  updateAuthUI();
+
+  // Nav
+  $$('button[data-nav]').forEach(b=>b.onclick=()=>showView(b.dataset.nav));
+  showView('portfolio');
+
+  // Login (abre modal)
+  $('#btn-login')?.addEventListener('click', ()=>openModal($('#modal-login')));
+
+  // Logout via Supabase
+  $('#btn-logout')?.addEventListener('click', async ()=>{
+    await sbSignOut();
+    store.isAdmin=false;
+    updateAuthUI();
+  });
+
+  // Login form -> Supabase
+  const loginForm = $('#login-form');
+  if (loginForm) {
+    loginForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = $('#login-user').value.trim();
+      const pass  = $('#login-pass').value.trim();
+      try {
+        await sbSignIn(email, pass);
+        closeModal($('#modal-login'));
+      } catch (err) {
+        alert('No se pudo iniciar sesión: ' + err.message);
+      }
+    };
+  }
+
+  // Upload form -> Supabase
+  const uploadForm = $('#upload-form');
+  if (uploadForm) {
+    uploadForm.onsubmit = async (e)=>{
+      e.preventDefault();
+      const title=$('#title-input').value.trim();
+      const week=$('#week-select').value;
+      const file=$('#file-input').files[0];
+      if(!title||!week||!file) return alert('Completa título, semana y archivo.');
+      await addEntry({title,week,file});
+      e.target.reset(); $('#week-select').value='';
+    };
+  }
+
+  // Folder picker (legacy local) — puedes dejarlo sin uso si migraste 100% a Supabase
+  $('#btn-pick-folder')?.addEventListener('click', ()=>{
+    alert('Con Supabase ya no necesitas carpeta local. Este botón es opcional.');
+  });
+
+  // Close modals
+  $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b=>b.onclick=(ev)=>closeModal(ev.target.closest('.modal-backdrop')));
+  $$('#modal-login, #modal-preview').forEach(m=>m.onclick=(e)=>{ if(e.target.classList.contains('modal-backdrop')) closeModal(e.target); });
+});
+
