@@ -454,6 +454,7 @@ function addAdminToolbar(cardNode, item) {
 }
 
 
+
   // sidebar semanas solo en Portafolio
   toggleSecondSidebar?.(name === 'portfolio');
 
@@ -462,7 +463,7 @@ function addAdminToolbar(cardNode, item) {
     const w = (window.store && window.store.currentWeek) || 1;
     window.openWeek?.(w);
   }
-};
+
 
 // ===== Modales: cerrar al hacer click fuera =====
 document.addEventListener('DOMContentLoaded', ()=>{
