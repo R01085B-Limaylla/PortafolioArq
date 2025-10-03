@@ -203,6 +203,58 @@ function createCard(item) {
     openModal($('#modal-preview'));
   };
 
+// Lista archivos de una semana desde Supabase Storage
+async function fetchWeekFiles(week) {
+  if (!window.supabase) return [];
+  try {
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .list(`${week}/`, { limit: 100, offset: 0, sortBy: { column: 'name', order: 'asc' } });
+    if (error) throw error;
+    // Mapear a tu formato
+    return (data || []).map(obj => {
+      const { data: pub } = supabase.storage.from('uploads').getPublicUrl(`${week}/${obj.name}`);
+      const isPdf = obj.name.toLowerCase().endsWith('.pdf');
+      return {
+        title: obj.name,
+        name: obj.name,
+        week: +week,
+        type: isPdf ? 'pdf' : 'image',
+        url: pub.publicUrl,
+      };
+    });
+  } catch (e) {
+    console.error('fetchWeekFiles error', e);
+    return [];
+  }
+}
+
+// Renderiza la grilla central con store.repoEntries
+function renderWeekGrid(week){
+  const grid = $('#files-grid'); if (!grid) return;
+  grid.innerHTML = '';
+  const items = store.repoEntries || [];
+  if (!items.length){
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No hay archivos en esta semana.';
+    grid.appendChild(empty);
+    return;
+  }
+  items.forEach(it => grid.appendChild(createCard(it)));
+}
+
+// Abre semana (solo centro) y marca botón activo de la barra 2
+async function openWeek(w){
+  store.currentWeek = +w;
+  // Activa botón en barra 2
+  $$('#weeks-nav .wk').forEach(b => b.classList.toggle('active', +b.dataset.week === store.currentWeek));
+  // Trae archivos y pinta
+  store.repoEntries = await fetchWeekFiles(store.currentWeek);
+  renderWeekGrid(store.currentWeek);
+}
+
+  
   // ===== Botones CRUD (solo admin) =====
   const actionsWrap = btnPrev.parentElement;
   if (store.isAdmin && actionsWrap) {
@@ -229,27 +281,23 @@ function createCard(item) {
   return node;
 }
 
-// ===== Render: barra 2 (semanas) + grid =====
-function buildWeeksSidebar() {
+// Botones Semana 1–16 en la barra 2 (sin conteo, directo)
+function buildWeeksSidebar(){
   const nav = $('#weeks-nav'); if (!nav) return;
   nav.innerHTML = '';
-  for (let w = 1; w <= 16; w++) {
-    const count = store.repoEntries.filter(e => +e.week === w).length;
+  for (let w = 1; w <= 16; w++){
     const btn = document.createElement('button');
     btn.className = 'wk';
     btn.dataset.week = String(w);
     btn.innerHTML = `
       <span class="pill">${w}</span>
-      <span>Semana ${w}</span>
-      <span style="margin-left:auto; font-size:.75rem; color:#a9b6dc;">${count}</span>`;
-    btn.addEventListener('click', () => {
-      $$('#weeks-nav .wk').forEach(b => b.classList.toggle('active', b === btn));
-      openWeek(w);
-    });
+      <span>Semana ${w}</span>`;
+    btn.addEventListener('click', () => openWeek(w));
     if (w === (store.currentWeek || 1)) btn.classList.add('active');
     nav.appendChild(btn);
   }
 }
+
 
 // Grid central (visible para todos)
 function renderWeekGrid(week) {
@@ -271,19 +319,25 @@ function openWeek(w) {
   renderWeekGrid(store.currentWeek);
 }
 
-// ===== CRUD + Auto actualización de index.json local =====
+// ===== CRUD (Supabase Storage) =====
 async function addEntry({ title, week, file }) {
-  const id = crypto.randomUUID();
-  const type = file.type.startsWith('image/') ? 'image' : 'pdf';
-  const meta = {
-    id,
-    title: title || file.name,
-    week: +week,
-    type,
-    name: file.name,
-    size: file.size,
-    createdAt: Date.now()
-  };
+  if (!window.supabase) {
+    alert("Supabase no está inicializado. Revisa el <script type='module'> en index.html");
+    return;
+  }
+  try {
+    const path = `${week}/${file.name}`; // Guardamos en carpeta por semana
+    const { error: upErr } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
+    if (upErr) throw upErr;
+
+    // Refresca la UI después de subir
+    await openWeek(+week);
+    alert('Archivo subido correctamente a Supabase Storage.');
+  } catch (err) {
+    console.error(err);
+    alert('Error al subir: ' + (err.message || err));
+  }
+}
 
   // Guarda copia local en IndexedDB
   store.entries.push(meta);
@@ -396,47 +450,75 @@ if (SB) {
 }
 
 // ===== Init =====
-document.addEventListener('DOMContentLoaded', async () => {
-  // Selects semana en el formulario
-  ensureWeekOptions($('#week-select'));
+document.addEventListener('DOMContentLoaded', async ()=>{
+  // Select de semanas (para el formulario admin)
+  const weekSel = document.getElementById('week-select');
+  if (weekSel) {
+    weekSel.innerHTML = '<option value="" disabled selected>Semana…</option>' +
+      Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join('');
+  }
 
-  // Cargas iniciales
   await loadEntries();
   await loadDirHandle();
-  await loadRepoManifest();
 
-  // Construir barra lateral de semanas
+  // Construye la barra secundaria y abre la semana 1 (visible para todos)
   buildWeeksSidebar();
+  await openWeek(1);
 
-  // Mostrar Portafolio por defecto y semana 1
-  showView('portfolio');
-  openWeek(1);
+  // Estado admin (si usabas localStorage, mantenlo; si usas Supabase Auth, ajústalo)
+  store.isAdmin = localStorage.getItem('isAdmin')==='1';
+  updateAuthUI();
 
-  // Login (abrir/cerrar modal)
-  $('#btn-login')?.addEventListener('click', () => openModal($('#modal-login')));
-  $('#btn-logout')?.addEventListener('click', sbSignOut);
+  // Navegación principal
+  $$('button[data-nav]').forEach(b => b.onclick = () => {
+    const name = b.dataset.nav;
+    $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
+    $('#view-profile').classList.toggle('hidden', name !== 'profile');
 
-  // Form login con Supabase
-  const loginForm = $('#login-form');
+    $$('button[data-nav]').forEach(b2=>{
+      b2.classList.toggle('active', b2.dataset.nav === name);
+      if (b2.dataset.nav === name) b2.setAttribute('aria-current','page'); else b2.removeAttribute('aria-current');
+    });
+
+    // mostrar barra semanas solo en Portafolio
+    const sb2 = $('#sidebar-weeks');
+    const main = $('#app-main');
+    const show = name === 'portfolio';
+    if (sb2 && main) {
+      sb2.classList.toggle('show', !!show);
+      sb2.style.display = show ? 'flex' : 'none';
+      main.classList.toggle('with-sidebar-2', !!show);
+    }
+
+    if (name === 'portfolio') openWeek(store.currentWeek || 1);
+  });
+  // Por defecto
+  (function(){ const name = 'portfolio';
+    $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
+    $('#view-profile').classList.toggle('hidden', name !== 'profile');
+  })();
+
+  // Login (si sigues sin Supabase Auth)
+  const btnLogin = document.getElementById('btn-login');
+  const btnLogout = document.getElementById('btn-logout');
+  if (btnLogin) btnLogin.onclick = () => openModal(document.getElementById('modal-login'));
+  if (btnLogout) btnLogout.onclick = () => { store.isAdmin=false; localStorage.removeItem('isAdmin'); updateAuthUI(); };
+
+  const loginForm = document.getElementById('login-form');
   if (loginForm) {
-    loginForm.onsubmit = async (e) => {
+    loginForm.onsubmit = (e) => {
       e.preventDefault();
-      const email = $('#login-user').value.trim();
-      const pass = $('#login-pass').value.trim();
-      try {
-        await sbSignIn(email, pass);
-        closeModal($('#modal-login'));
-      } catch (err) {
-        alert('No se pudo iniciar sesión: ' + (err?.message || err));
-      }
+      // ⚠️ Temporal: si no has conectado Supabase Auth, seguimos con localStorage
+      // (cuando conectes Auth, reemplaza por sbSignIn(...) )
+      store.isAdmin = true;
+      localStorage.setItem('isAdmin','1');
+      updateAuthUI();
+      closeModal(document.getElementById('modal-login'));
     };
   }
 
-  // Navegación (Portafolio/Perfil)
-  $$('button[data-nav]').forEach(b => b.addEventListener('click', () => showView(b.dataset.nav)));
-
-  // Upload (solo admin, pero el form está oculto si no es admin)
-  const uploadForm = $('#upload-form');
+  // Upload (usa addEntry que ahora sube a Supabase Storage)
+  const uploadForm = document.getElementById('upload-form');
   if (uploadForm) {
     uploadForm.onsubmit = async (e) => {
       e.preventDefault();
@@ -450,17 +532,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
-  // Conectar carpeta
-  $('#btn-pick-folder')?.addEventListener('click', pickFolder);
+  // Folder picker (ya no es necesario con Storage, pero si lo usas para otra cosa lo dejamos)
+  const pickBtn = document.getElementById('btn-pick-folder');
+  if (pickBtn) pickBtn.onclick = pickFolder;
 
-  // Cerrar modales
-  $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b =>
-    b.addEventListener('click', (ev) => closeModal(ev.target.closest('.modal-backdrop')))
-  );
-  $$('#modal-login, #modal-preview').forEach(m =>
-    m.addEventListener('click', (e) => { if (e.target.classList.contains('modal-backdrop')) closeModal(e.target); })
-  );
+  // Cierre de modales
+  $$('#modal-login [data-close], #modal-preview [data-close]').forEach(b => b.onclick = (ev) => closeModal(ev.target.closest('.modal-backdrop')));
+  $$('#modal-login, #modal-preview').forEach(m => m.onclick = (e) => { if (e.target.classList.contains('modal-backdrop')) closeModal(e.target); });
 });
+
 
 
 
