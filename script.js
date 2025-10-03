@@ -41,6 +41,32 @@ function showView(name) {
   // mostrar barra 2 solo en portafolio
   toggleSecondSidebar(name === 'portfolio');
 
+   async function fetchAllEntries() {
+  // 1) Si tienes Supabase configurado y la tabla portfolio_items:
+  try {
+    if (window.supabase) {
+      const { data, error } = await supabase
+        .from('portfolio_items')
+        .select('*')
+        .order('week', { ascending: true });
+      if (!error && Array.isArray(data)) {
+        store.repoEntries = data.map(r => ({
+          title: r.title || r.name,
+          name: r.name,
+          week: +r.week,
+          type: r.type,
+          url: r.url
+        }));
+        return;
+      }
+    }
+  } catch (_) {}
+
+  // 2) Fallback: manifest local
+  await loadRepoManifest();
+}
+
+
   // asegurar que hay semana abierta en portafolio
   if (name === 'portfolio') openWeek(store.currentWeek || 1);
 }
