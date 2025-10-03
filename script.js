@@ -41,7 +41,7 @@ function ensureWeekOptions(sel){
 }
 
 // ==== Vista principal (Portafolio o Perfil) ====
-window.showView = function (name) {
+window.showView = function(name) {
   const vp = document.getElementById('view-portfolio');
   const vf = document.getElementById('view-profile');
 
@@ -50,24 +50,25 @@ window.showView = function (name) {
     vf.classList.toggle('hidden', name !== 'profile');
   }
 
- document.querySelectorAll('button[data-nav]').forEach(b => {
-  b.onclick = () => showView(b.dataset.nav);
-});
-showView('portfolio'); // vista inicial
+  // Marcar activo en el menú lateral (solo cambia clases/atributos; NO pone onclick)
+  document.querySelectorAll('button[data-nav]').forEach(b => {
+    const active = b.dataset.nav === name;
+    b.classList.toggle('active', active);
+    if (active) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
 
-
-  // sidebar de semanas solo en Portafolio
+  // Sidebar de semanas solo en Portafolio
   if (typeof toggleSecondSidebar === 'function') {
     toggleSecondSidebar(name === 'portfolio');
   }
 
-  // abrir semana al entrar a Portafolio
+  // Al entrar a Portafolio, pinta la semana actual
   if (name === 'portfolio' && typeof openWeek === 'function') {
     const w = (window.store && window.store.currentWeek) || 1;
     openWeek(w);
   }
 };
-
 
 // ==== Sidebar Semanas (mostrar/ocultar) ====
 function toggleSecondSidebar(show) {
