@@ -34,9 +34,13 @@ function updateAuthUI() {
   $('#btn-logout')?.classList.toggle('hidden', !store.isAdmin);
   $('#admin-tools')?.classList.toggle('hidden', !store.isAdmin);
 
-  // Re-render de la semana actual para mostrar/ocultar botones CRUD
-  if ($('#files-grid')) renderWeekGrid(store.currentWeek);
+  // Re-render total según el estado actual (admin o no):
+  // - Recalculamos los conteos de la barra de semanas
+  // - Re-render del grid de la semana actual (reconstruye las cards sin/ con CRUD)
+  buildWeeksSidebar();
+  openWeek(store.currentWeek || 1);
 }
+
 
 function showView(name) {
   $('#view-portfolio')?.classList.toggle('hidden', name !== 'portfolio');
