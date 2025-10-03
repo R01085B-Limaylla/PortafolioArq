@@ -40,7 +40,7 @@ function ensureWeekOptions(sel){
     +Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join('');
 }
 
-// ---- Navegación entre vistas (definición única) ----
+// ==== Vista principal (Portafolio o Perfil) ====
 window.showView = function (name) {
   const vp = document.getElementById('view-portfolio');
   const vf = document.getElementById('view-profile');
@@ -49,6 +49,11 @@ window.showView = function (name) {
     vp.classList.toggle('hidden', name !== 'portfolio');
     vf.classList.toggle('hidden', name !== 'profile');
   }
+
+ document.querySelectorAll('button[data-nav]').forEach(b => {
+  b.onclick = () => showView(b.dataset.nav);
+});
+showView('portfolio'); // vista inicial
 
 
   // sidebar de semanas solo en Portafolio
@@ -62,6 +67,7 @@ window.showView = function (name) {
     openWeek(w);
   }
 };
+
 
 // ==== Sidebar Semanas (mostrar/ocultar) ====
 function toggleSecondSidebar(show) {
