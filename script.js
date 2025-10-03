@@ -50,15 +50,6 @@ window.showView = function (name) {
     vf.classList.toggle('hidden', name !== 'profile');
   }
 
-// marcar activo en el menú lateral
-document.querySelectorAll('button[data-nav]').forEach(b => {
-  const active = b.dataset.nav === name;
-  b.classList.toggle('active', active);
-  if (active) b.setAttribute('aria-current','page');
-  else b.removeAttribute('aria-current');
-});
-
-
 
   // sidebar de semanas solo en Portafolio
   if (typeof toggleSecondSidebar === 'function') {
