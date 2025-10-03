@@ -230,6 +230,59 @@ function openWeek(w){
   renderWeekGrid(w);   // solo renderiza en el Dashboard
 }
 
+// ===== SUBIDA A SUPABASE STORAGE + REFRESCO UI =====
+async function addEntry({ title, week, file }) {
+  try {
+    if (!window.supabase || !supabase.storage) {
+      alert('Supabase no está inicializado. Revisa el <script type="module"> con createClient en tu index.html.');
+      return;
+    }
+
+    const id = crypto.randomUUID();
+    const type = file.type.startsWith('image/') ? 'image' : 'pdf';
+    const wk = Number(week);
+
+    // para evitar colisiones: carpeta de la semana + timestamp + nombre
+    const safeName = file.name.replace(/\s+/g, '_');
+    const key = `${wk}/${Date.now()}_${safeName}`;
+
+    // 1) Subir a Storage (bucket: 'uploads')
+    const { error: upErr } = await supabase
+      .storage
+      .from('uploads')
+      .upload(key, file, { cacheControl: '3600', upsert: true });
+
+    if (upErr) throw upErr;
+
+    // 2) Obtener URL pública
+    const { data: pub } = supabase
+      .storage
+      .from('uploads')
+      .getPublicUrl(key);
+
+    // 3) Insertar en la lista en memoria (la UI se pinta desde store.repoEntries)
+    const item = {
+      title: title || file.name,
+      week: wk,
+      type,
+      name: safeName,
+      url: pub.publicUrl
+    };
+    store.repoEntries.push(item);
+
+    // 4) Refrescar barra de semanas (conteos) y el grid de la semana actual
+    if (typeof buildWeeksSidebar === 'function') buildWeeksSidebar();
+    store.currentWeek = wk; // opcional: saltar a la semana donde se subió
+    if (typeof renderWeekGrid === 'function') renderWeekGrid(wk);
+
+    alert('✅ Archivo subido correctamente a Supabase Storage');
+  } catch (err) {
+    console.error(err);
+    alert('❌ Error al subir: ' + (err?.message || err));
+  }
+}
+
+
 // ===== SUPABASE AUTH =====
 async function sbSignUp(email, password) {
   const { data, error } = await supabase.auth.signUp({ email, password });
