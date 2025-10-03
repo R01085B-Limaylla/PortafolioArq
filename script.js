@@ -40,35 +40,39 @@ function ensureWeekOptions(sel){
     +Array.from({length:16},(_,i)=>`<option value="${i+1}">Semana ${i+1}</option>`).join('');
 }
 
-// ---- Navegación entre vistas (ÚNICA) ----
-function showView(name) {
+// ---- Navegación entre vistas (definición única) ----
+window.showView = window.showView || function (name) {
   const vp = document.getElementById('view-portfolio');
   const vf = document.getElementById('view-profile');
 
   if (vp && vf) {
-    // muestra solo la vista pedida
     vp.classList.toggle('hidden', name !== 'portfolio');
     vf.classList.toggle('hidden', name !== 'profile');
   }
 
-  // marca activo en el menú lateral
+  // marcar activo en el menú lateral
   document.querySelectorAll('button[data-nav]').forEach(b => {
     const active = b.dataset.nav === name;
     b.classList.toggle('active', active);
-    if (active) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+    if (active) {
+      b.setAttribute('aria-current','page');
+    } else {
+      b.removeAttribute('aria-current');
+    }
   });
 
-  // sidebar de semanas solo en Portafolio (si tienes esta función)
+  // sidebar de semanas solo en Portafolio
   if (typeof toggleSecondSidebar === 'function') {
     toggleSecondSidebar(name === 'portfolio');
   }
 
-  // si entras a Portafolio, abre la semana actual o 1
+  // abrir semana al entrar a Portafolio
   if (name === 'portfolio' && typeof openWeek === 'function') {
     const w = (window.store && window.store.currentWeek) || 1;
     openWeek(w);
   }
-}
+}; // 👈 aquí CIERRA bien la función
+
 
 // ==== Sidebar Semanas (mostrar/ocultar) ====
 function toggleSecondSidebar(show) {
