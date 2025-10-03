@@ -455,15 +455,6 @@ function addAdminToolbar(cardNode, item) {
 
 
 
-  // sidebar semanas solo en Portafolio
-  toggleSecondSidebar?.(name === 'portfolio');
-
-  // abrir semana por defecto
-  if (name === 'portfolio') {
-    const w = (window.store && window.store.currentWeek) || 1;
-    window.openWeek?.(w);
-  }
-
 
 // ===== Modales: cerrar al hacer click fuera =====
 document.addEventListener('DOMContentLoaded', ()=>{
