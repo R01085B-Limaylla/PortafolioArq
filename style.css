@@ -500,3 +500,38 @@ button[data-nav].active{ background: rgba(255,255,255,.10); border:1px solid var
   gap: 1rem;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
+
+/* === Iconos Ver/Descargar encima del thumb === */
+.thumb-overlay{
+  position:absolute; top:8px; right:8px; display:flex; gap:.4rem;
+  z-index:10;
+}
+.icon-btn{
+  width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+  background: rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.22);
+  backdrop-filter: blur(6px) saturate(140%);
+  transition: transform .15s ease, background .15s ease;
+}
+.icon-btn:hover{ transform: translateY(-2px); background: rgba(255,255,255,.18); }
+
+/* === Barra de acciones admin abajo === */
+.admin-actions{
+  margin-top:.65rem; display:flex; gap:.5rem; flex-wrap:wrap;
+}
+.btn-success{
+  background: linear-gradient(180deg, #22c55e, #16a34a);
+  color:#fff; border:1px solid rgba(0,0,0,.18);
+  box-shadow: 0 6px 16px rgba(22,163,74,.35);
+}
+.btn-success:hover{ filter:brightness(1.05); }
+.btn-danger{
+  background: linear-gradient(180deg, #ef4444, #dc2626);
+  color:#fff; border:1px solid rgba(0,0,0,.18);
+  box-shadow: 0 6px 16px rgba(220,38,38,.35);
+}
+.btn-danger:hover{ filter:brightness(1.05); }
+
+/* Contenedor del thumbnail debe ser relative para overlay */
+.card .aspect-video{ position:relative; }
+
