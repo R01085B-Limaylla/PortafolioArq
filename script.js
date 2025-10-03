@@ -441,24 +441,32 @@ function addAdminToolbar(cardNode, item) {
   }
 }
 
-// ===== Mostrar vista (Portafolio / Perfil) y preparar semana inicial =====
-function showView(name){
-  $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
-  $('#view-profile').classList.toggle('hidden', name !== 'profile');
+// usa SOLO en la segunda aparición, para no redeclarar:
+window.showView = window.showView || function (name) {
+  const vp = document.getElementById('view-portfolio');
+  const vf = document.getElementById('view-profile');
 
-  $$('button[data-nav]').forEach(b=>{
+  if (vp && vf) {
+    vp.classList.toggle('hidden', name !== 'portfolio');
+    vf.classList.toggle('hidden', name !== 'profile');
+  }
+
+  // nav activo
+  document.querySelectorAll('button[data-nav]').forEach(b => {
     const active = b.dataset.nav === name;
     b.classList.toggle('active', active);
-    if (active) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+    if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
 
-  toggleSecondSidebar(name === 'portfolio');
+  // sidebar semanas solo en Portafolio
+  toggleSecondSidebar?.(name === 'portfolio');
 
+  // abrir semana por defecto
   if (name === 'portfolio') {
-    openWeek(store.currentWeek || 1);
+    const w = (window.store && window.store.currentWeek) || 1;
+    window.openWeek?.(w);
   }
-}
-
+};
 
 // ===== Modales: cerrar al hacer click fuera =====
 document.addEventListener('DOMContentLoaded', ()=>{
