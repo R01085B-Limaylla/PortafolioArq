@@ -441,7 +441,23 @@ function addAdminToolbar(cardNode, item) {
   }
 }
 
+// ===== Mostrar vista (Portafolio / Perfil) y preparar semana inicial =====
+function showView(name){
+  $('#view-portfolio').classList.toggle('hidden', name !== 'portfolio');
+  $('#view-profile').classList.toggle('hidden', name !== 'profile');
 
+  $$('button[data-nav]').forEach(b=>{
+    const active = b.dataset.nav === name;
+    b.classList.toggle('active', active);
+    if (active) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+  });
+
+  toggleSecondSidebar(name === 'portfolio');
+
+  if (name === 'portfolio') {
+    openWeek(store.currentWeek || 1);
+  }
+}
 
 
 // ===== Modales: cerrar al hacer click fuera =====
