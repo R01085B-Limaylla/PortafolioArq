@@ -186,50 +186,6 @@ async function deleteEntry(item){
   } catch(e){ alert("Error eliminando: "+e.message); }
 }
 
-// ===== Barra lateral de semanas =====
-function buildWeeksSidebar(){
-  const nav = $('#weeks-nav'); 
-  if (!nav) return;
-  nav.innerHTML = '';
-  for (let w=1; w<=16; w++){
-    const count = store.repoEntries.filter(e=>+e.week===w).length;
-    const btn = document.createElement('button');
-    btn.className = 'wk';
-    btn.dataset.week = String(w);
-    btn.innerHTML = `
-      <span class="pill">${w}</span>
-      <span>Semana ${w}</span>
-      <span style="margin-left:auto; font-size:.75rem; color:#a9b6dc;">${count}</span>`;
-    btn.addEventListener('click', () => {
-      $$('#weeks-nav .wk').forEach(b => b.classList.toggle('active', b === btn));
-      openWeek(w);
-    });
-    if (w === (store.currentWeek||1)) btn.classList.add('active');
-    nav.appendChild(btn);
-  }
-}
-
-// ===== Grid central =====
-function renderWeekGrid(week){
-  const grid = $('#files-grid'); if (!grid) return;
-  grid.innerHTML='';
-  const items = store.repoEntries.filter(e=>+e.week===+week);
-  if (!items.length){
-    const empty=document.createElement('div'); 
-    empty.className='empty'; 
-    empty.textContent='No hay archivos en esta semana.'; 
-    grid.appendChild(empty); 
-    return;
-  }
-  items.forEach(it=>grid.appendChild(createCard(it)));
-}
-
-// ===== Abrir semana =====
-function openWeek(w){
-  store.currentWeek = w;
-  renderWeekGrid(w);   // solo renderiza en el Dashboard
-}
-
 // ===== SUBIDA A SUPABASE STORAGE + REFRESCO UI =====
 async function addEntry({ title, week, file }) {
   try {
@@ -283,6 +239,50 @@ async function addEntry({ title, week, file }) {
 }
 
 
+// ===== Barra lateral de semanas =====
+function buildWeeksSidebar(){
+  const nav = $('#weeks-nav'); 
+  if (!nav) return;
+  nav.innerHTML = '';
+  for (let w=1; w<=16; w++){
+    const count = store.repoEntries.filter(e=>+e.week===w).length;
+    const btn = document.createElement('button');
+    btn.className = 'wk';
+    btn.dataset.week = String(w);
+    btn.innerHTML = `
+      <span class="pill">${w}</span>
+      <span>Semana ${w}</span>
+      <span style="margin-left:auto; font-size:.75rem; color:#a9b6dc;">${count}</span>`;
+    btn.addEventListener('click', () => {
+      $$('#weeks-nav .wk').forEach(b => b.classList.toggle('active', b === btn));
+      openWeek(w);
+    });
+    if (w === (store.currentWeek||1)) btn.classList.add('active');
+    nav.appendChild(btn);
+  }
+}
+
+// ===== Grid central =====
+function renderWeekGrid(week){
+  const grid = $('#files-grid'); if (!grid) return;
+  grid.innerHTML='';
+  const items = store.repoEntries.filter(e=>+e.week===+week);
+  if (!items.length){
+    const empty=document.createElement('div'); 
+    empty.className='empty'; 
+    empty.textContent='No hay archivos en esta semana.'; 
+    grid.appendChild(empty); 
+    return;
+  }
+  items.forEach(it=>grid.appendChild(createCard(it)));
+}
+
+// ===== Abrir semana =====
+function openWeek(w){
+  store.currentWeek = w;
+  renderWeekGrid(w);   // solo renderiza en el Dashboard
+}
+
 // ===== SUPABASE AUTH =====
 async function sbSignUp(email, password) {
   const { data, error } = await supabase.auth.signUp({ email, password });
@@ -329,40 +329,23 @@ document.addEventListener('DOMContentLoaded', ()=>{
   };
 });
 
-// ===== Upload archivos =====
-document.addEventListener('DOMContentLoaded', ()=>{
-  $('#upload-form').onsubmit=async(e)=>{
-    e.preventDefault();
-    const title=$('#title-input').value.trim(); 
-    const week=$('#week-select').value; 
-    const file=$('#file-input').files[0];
-    if(!title||!week||!file) return alert('Completa título, semana y archivo.');
+document.getElementById('upload-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('title-input').value.trim();
+  const week  = document.getElementById('week-select').value;
+  const file  = document.getElementById('file-input').files[0];
 
-    try {
-      // Subir a Supabase Storage
-      const { error } = await supabase.storage.from("uploads").upload(file.name, file, { upsert: true });
-      if (error) throw error;
+  if (!title || !week || !file) {
+    alert('Completa título, semana y selecciona un archivo.');
+    return;
+  }
 
-      // Insertar referencia en lista local
-      store.repoEntries.push({
-        title, 
-        week:+week, 
-        type:file.type.startsWith("image/")?"image":"pdf",
-        name:file.name,
-        url:`${SUPABASE_URL}/storage/v1/object/public/uploads/${file.name}`
-      });
+  await addEntry({ title, week, file });
 
-      buildWeeksSidebar();
-      openWeek(+week);
-
-      e.target.reset(); 
-      $('#week-select').value='';
-      alert("Archivo subido correctamente.");
-    } catch(err){ 
-      alert("Error subiendo archivo: "+err.message); 
-    }
-  };
-});
+  // limpiar formulario
+  e.target.reset();
+  document.getElementById('week-select').value = '';
+};
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async ()=>{
