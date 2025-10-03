@@ -50,15 +50,14 @@ window.showView = function (name) {
     vf.classList.toggle('hidden', name !== 'profile');
   }
 
-  // marcar activo en el menú lateral
- function toggleSecondSidebar(show) {
-  const sb2 = document.getElementById('sidebar-weeks');
-  const main = document.getElementById('app-main');
-  if (!sb2 || !main) return;
-  sb2.classList.toggle('show', !!show);
-  sb2.style.display = show ? 'flex' : 'none';
-  main.classList.toggle('with-sidebar-2', !!show);
-}
+// marcar activo en el menú lateral
+document.querySelectorAll('button[data-nav]').forEach(b => {
+  const active = b.dataset.nav === name;
+  b.classList.toggle('active', active);
+  if (active) b.setAttribute('aria-current','page');
+  else b.removeAttribute('aria-current');
+});
+
 
 
   // sidebar de semanas solo en Portafolio
