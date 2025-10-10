@@ -1,39 +1,22 @@
 
 /************************************
  *  Portfolio – script.js (COMPLETO)
- *  - Supabase Storage (bucket: uploads) + manifest.json
- *  - Auth (Google / Password)  → oculta "Iniciar sesión" y muestra "Cerrar sesión" cuando hay sesión
- *  - Solo admin@upla.edu puede Editar/Eliminar
- *  - Sidebar de semanas
- *  - Grid con overlay (Ver/Descargar) y barra inferior (Editar/Eliminar) para admin
- *  - Sección "Cuenta" con datos del usuario autenticado
+ *  (ver cabecera del archivo anterior para descripción)
  ************************************/
-
-/* ========= SUPABASE ========= */
-/* Asegúrate de haber inicializado el cliente en index.html, por ejemplo:
-   <script type="module">
-     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-     const SUPABASE_URL = "https://oqrmtfxvhtmjyoekssgu.supabase.co";
-     const SUPABASE_ANON_KEY = "TU_ANON_KEY";
-     window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-   </script>
-*/
 if (!window.supabase) {
   console.warn("Supabase client no encontrado. Crea window.supabase en index.html.");
 }
 const BUCKET = "uploads";
 const MANIFEST_PATH = "manifest.json";
 
-/* ========= ESTADO ========= */
 const store = {
-  repoEntries: [],   // { name, title, week, type, url }
+  repoEntries: [],
   isAdmin: false,
   currentWeek: 1,
   session: null,
   userEmail: null
 };
 
-/* ========= UTILS ========= */
 const $  = (s, el=document) => el.querySelector(s);
 const $$ = (s, el=document) => [...el.querySelectorAll(s)];
 const openModal  = el => el && (el.style.display = "flex");
@@ -56,7 +39,6 @@ function extIsImage(filename) {
   return ["jpg","jpeg","png","gif","webp","bmp","svg"].includes(ext);
 }
 
-/* ========= NAV ENTRE VISTAS ========= */
 window.showView = function(name) {
   const vp  = $("#view-portfolio");
   const vf  = $("#view-profile");
@@ -65,7 +47,6 @@ window.showView = function(name) {
   if (vf)  vf.classList.toggle("hidden", name !== "profile");
   if (vac) vac.classList.toggle("hidden", name !== "account");
 
-  // activar botón del menú
   $$("button[data-nav]").forEach(b => {
     const active = b.dataset.nav === name;
     b.classList.toggle("active", active);
@@ -73,7 +54,6 @@ window.showView = function(name) {
     else b.removeAttribute("aria-current");
   });
 
-  // mostrar sidebar de semanas solo en Portafolio
   toggleSecondSidebar(name === "portfolio");
   if (name === "portfolio") openWeek(store.currentWeek || 1);
 };
@@ -87,9 +67,7 @@ function toggleSecondSidebar(show) {
   main.classList.toggle("with-sidebar-2", !!show);
 }
 
-/* ========= MANIFEST (LEE/ESCRIBE) ========= */
 async function fetchManifest() {
-  // Descarga manifest.json si existe; si no, retorna []
   try {
     const { data, error } = await supabase.storage.from(BUCKET).download(MANIFEST_PATH);
     if (error) throw error;
@@ -102,25 +80,21 @@ async function fetchManifest() {
 }
 
 async function saveManifest(items) {
-  // items: array de {name,title,week,type,url}
   const body = JSON.stringify({ items }, null, 2);
   const blob = new Blob([body], { type: "application/json" });
   const { error } = await supabase.storage.from(BUCKET).upload(MANIFEST_PATH, blob, { upsert: true, contentType: "application/json" });
   if (error) throw error;
 }
 
-/* ========= CARGA LISTADO ========= */
 async function loadRepoManifest() {
-  // 1) intentamos leer manifest.json (con title y week reales)
   let items = await fetchManifest();
   if (!items.length) {
-    // 2) si no existe, listamos el bucket y generamos items básicos
     const { data, error } = await supabase.storage.from(BUCKET).list("", { limit: 1000 });
     if (!error && Array.isArray(data)) {
       items = data.map(it => ({
         name: it.name,
-        title: it.name,        // sin metadata => mismo nombre
-        week: 1,               // sin metadata => semana 1
+        title: it.name,
+        week: 1,
         type: extIsImage(it.name) ? "image" : "pdf",
         url: getPublicUrl(it.name)
       }));
@@ -129,7 +103,6 @@ async function loadRepoManifest() {
   store.repoEntries = items;
 }
 
-/* ========= MINIATURAS PDF ========= */
 async function renderPdfThumb(url, imgEl) {
   try {
     const pdf = await pdfjsLib.getDocument({ url }).promise;
@@ -143,12 +116,9 @@ async function renderPdfThumb(url, imgEl) {
     await page.render({ canvasContext: c.getContext("2d", { alpha: false }), viewport: v }).promise;
     imgEl.src = c.toDataURL("image/png");
     imgEl.classList.remove("hidden");
-  } catch (_) {
-    /* deja icono PDF */
-  }
+  } catch (_) {}
 }
 
-/* ========= CARDS (overlay + admin actions) ========= */
 function createCard(item) {
   const tpl = $("#card-template");
   const node = tpl.content.firstElementChild.cloneNode(true);
@@ -158,16 +128,10 @@ function createCard(item) {
   const pdfCover = node.querySelector('[data-role="pdfcover"]');
   const title = node.querySelector('[data-role="title"]');
   const meta = node.querySelector('[data-role="meta"]');
-  const aDownload = node.querySelector('[data-role="download"]');
 
-  // Título + meta
   title.textContent = item.title || item.name;
   meta.textContent = `${item.type.toUpperCase()} · Semana ${item.week}`;
 
-  // Ocultar cualquier "Descargar" textual del template base
-  if (aDownload) aDownload.style.display = "none";
-
-  // Miniatura
   if (item.type === "image") {
     img.src = item.url;
     img.onload = () => img.classList.remove("hidden");
@@ -177,16 +141,13 @@ function createCard(item) {
     });
   }
 
-  // === Overlay con iconos (Ver, Descargar) ===
   const overlay = document.createElement("div");
   overlay.className = "thumb-overlay";
 
-  // Ver
   const verBtn = document.createElement("button");
   verBtn.className = "icon-btn";
   verBtn.title = "Ver";
-  verBtn.innerHTML = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+  verBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
       <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
     </svg>`;
@@ -207,14 +168,12 @@ function createCard(item) {
     openModal($("#modal-preview"));
   };
 
-  // Descargar
   const dlBtn = document.createElement("a");
   dlBtn.className = "icon-btn";
   dlBtn.href = item.url;
   dlBtn.download = item.name;
   dlBtn.title = "Descargar";
-  dlBtn.innerHTML = `
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+  dlBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <path d="M12 3v12M7 10l5 5 5-5M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
 
@@ -222,27 +181,20 @@ function createCard(item) {
   overlay.appendChild(dlBtn);
   thumbWrap.appendChild(overlay);
 
-  // === Acciones Admin (abajo, verde/rojo) ===
   if (store.isAdmin) {
     const actions = document.createElement("div");
     actions.className = "admin-actions";
-
     const editBtn = document.createElement("button");
     editBtn.type = "button";
     editBtn.className = "btn btn-success text-xs";
     editBtn.textContent = "Editar";
-
     const delBtn = document.createElement("button");
     delBtn.type = "button";
     delBtn.className = "btn btn-danger text-xs";
     delBtn.textContent = "Eliminar";
-
     actions.appendChild(editBtn);
     actions.appendChild(delBtn);
-
-    const footer = node.querySelector(".mt-3");
-    footer.appendChild(actions);
-
+    node.querySelector(".mt-3").appendChild(actions);
     editBtn.addEventListener("click", () => editEntry(item));
     delBtn.addEventListener("click", () => deleteEntry(item));
   }
@@ -250,26 +202,19 @@ function createCard(item) {
   return node;
 }
 
-/* ========= CRUD (solo Admin, con manifest) ========= */
 async function editEntry(item) {
   const nuevoTitulo = prompt("Nuevo título:", item.title || item.name);
   if (nuevoTitulo === null) return;
-
   let nuevaSemana = prompt("Nueva semana (1-16):", String(item.week || 1));
   if (nuevaSemana === null) return;
   nuevaSemana = parseInt(nuevaSemana, 10);
-  if (!(nuevaSemana >= 1 && nuevaSemana <= 16)) {
-    return alert("Semana inválida (1-16).");
-  }
+  if (!(nuevaSemana >= 1 && nuevaSemana <= 16)) return alert("Semana inválida (1-16).");
 
-  // Actualiza en memoria
   const ref = store.repoEntries.find(x => x.name === item.name);
   if (ref) {
     ref.title = (nuevoTitulo.trim() || ref.title);
     ref.week = nuevaSemana;
   }
-
-  // Guarda manifest
   try {
     await saveManifest(store.repoEntries);
     buildWeeksSidebar();
@@ -285,10 +230,8 @@ async function deleteEntry(item) {
   try {
     const { error } = await supabase.storage.from(BUCKET).remove([item.name]);
     if (error) throw error;
-
     store.repoEntries = store.repoEntries.filter(x => x.name !== item.name);
     await saveManifest(store.repoEntries);
-
     buildWeeksSidebar();
     openWeek(store.currentWeek || 1);
     alert("Eliminado correctamente.");
@@ -297,7 +240,6 @@ async function deleteEntry(item) {
   }
 }
 
-/* ========= SIDEBAR DE SEMANAS ========= */
 function buildWeeksSidebar() {
   const nav = $("#weeks-nav");
   if (!nav) return;
@@ -320,7 +262,6 @@ function buildWeeksSidebar() {
   }
 }
 
-/* ========= GRID ========= */
 function renderWeekGrid(week) {
   const grid = $("#files-grid");
   if (!grid) return;
@@ -341,7 +282,6 @@ function openWeek(w) {
   renderWeekGrid(w);
 }
 
-/* ========= AUTH ========= */
 function populateAccount(session) {
   const user = session?.user;
   const email = user?.email || "—";
@@ -349,7 +289,6 @@ function populateAccount(session) {
   const avatar = user?.user_metadata?.avatar_url || "";
   const provider = user?.app_metadata?.provider || "password";
 
-  // Campos
   const $name   = $("#account-name");
   const $email  = $("#account-email");
   const $prov   = $("#account-provider");
@@ -380,23 +319,47 @@ function populateAccount(session) {
       }).join("");
     }
   }
+  renderSidebarUser(session);
+}
+
+function renderSidebarUser(session) {
+  const footer = document.querySelector(".sidebar__footer");
+  if (!footer) return;
+  let box = document.getElementById("sidebar-userbox");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "sidebar-userbox";
+    box.className = "card mb-2";
+    box.style.marginBottom = "0.5rem";
+    footer.prepend(box);
+  }
+  const user = session?.user;
+  if (!user) { box.innerHTML = ""; box.style.display="none"; return; }
+  const email = user.email || "";
+  const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0] || "Usuario";
+  const avatar = user.user_metadata?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(name);
+  box.innerHTML = `
+    <div class="flex items-center gap-3">
+      <img src="${avatar}" alt="avatar" class="w-8 h-8 rounded-lg border border-white/10 object-cover">
+      <div class="min-w-0">
+        <div class="text-sm font-semibold truncate">${name}</div>
+        <div class="text-xs text-slate-400 truncate">${email}</div>
+      </div>
+    </div>`;
+  box.style.display = "block";
 }
 
 function updateAuthUI() {
   const hasSession = !!store.session;
   const isAdmin = store.isAdmin;
-
-  // Login/Logout
   $("#btn-login") ?.classList.toggle("hidden", hasSession);
   $("#btn-logout")?.classList.toggle("hidden", !hasSession);
-  // Herramientas admin
+  const btnLogoutAcc = $("#btn-logout-account");
+  if (btnLogoutAcc) btnLogoutAcc.classList.add("hidden");
   $("#admin-tools")?.classList.toggle("hidden", !isAdmin);
-
-  // Refresca grid para mostrar/ocultar acciones admin
   openWeek(store.currentWeek || 1);
 }
 
-// Suscripción a cambios de auth
 if (supabase && supabase.auth) {
   supabase.auth.onAuthStateChange((_event, session) => {
     store.session = session || null;
@@ -404,87 +367,66 @@ if (supabase && supabase.auth) {
     store.isAdmin = !!store.userEmail && store.userEmail.toLowerCase() === "admin@upla.edu";
     updateAuthUI();
     if (session) populateAccount(session);
+    else renderSidebarUser(null);
   });
 }
 
-// ===== Google OAuth (Supabase) =====
 async function sbSignInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: window.location.origin + window.location.pathname  // vuelve a la misma página
-    }
+    options: { redirectTo: window.location.origin + window.location.pathname }
   });
   if (error) throw error;
   return data;
 }
 
-/* ========= UPLOAD (usa manifest) ========= */
 async function handleUpload(e) {
   e.preventDefault();
   const title = $("#title-input").value.trim();
   const week  = parseInt($("#week-select").value, 10);
   const file  = $("#file-input").files[0];
   if (!title || !week || !file) return alert("Completa título, semana y archivo.");
-
   try {
-    // Subir archivo (upsert) al Storage
     const { error } = await supabase.storage.from(BUCKET).upload(file.name, file, { upsert: true });
     if (error) throw error;
-
-    // Cargar manifest actual, actualizar / insertar item
     const items = await fetchManifest();
     const idx = items.findIndex(x => x.name === file.name);
     const item = {
       name: file.name,
-      title: title,           // respeta el título del formulario
-      week: week,             // respeta la semana elegida
+      title: title,
+      week: week,
       type: extIsImage(file.name) ? "image" : "pdf",
       url: getPublicUrl(file.name)
     };
     if (idx >= 0) items[idx] = item; else items.push(item);
-
     await saveManifest(items);
     store.repoEntries = items;
-
     buildWeeksSidebar();
     openWeek(week);
-
     e.target.reset();
     $("#week-select").value = "";
-
     alert("Archivo subido correctamente.");
   } catch (err) {
     alert("Error al subir: " + err.message);
   }
 }
 
-/* ========= INIT ========= */
 document.addEventListener("DOMContentLoaded", async () => {
   ensureWeekOptions($("#week-select"));
-
-  // nav
   $$("button[data-nav]").forEach(b => b.onclick = () => showView(b.dataset.nav));
   showView("portfolio");
 
-  // login modal
   $("#btn-login")?.addEventListener("click", () => openModal($("#modal-login")));
   $("#btn-logout")?.addEventListener("click", async () => {
     await supabase.auth.signOut();
     updateAuthUI();
   });
 
-  // Botón "Continuar con Google"
   const btnGoogle = document.getElementById('btn-google');
-  if (btnGoogle) {
-    btnGoogle.addEventListener('click', async () => {
-      try {
-        await sbSignInWithGoogle(); // te redirige a Google => vuelve con sesión
-      } catch (err) {
-        alert('No se pudo iniciar con Google: ' + err.message);
-      }
-    });
-  }
+  if (btnGoogle) btnGoogle.addEventListener('click', async () => {
+    try { await sbSignInWithGoogle(); } 
+    catch (err) { alert('No se pudo iniciar con Google: ' + err.message); }
+  });
 
   $("#login-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -498,7 +440,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // cerrar modales
   $$("#modal-login [data-close], #modal-preview [data-close]").forEach(b =>
     b.onclick = (ev) => closeModal(ev.target.closest(".modal-backdrop"))
   );
@@ -506,15 +447,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     m.onclick = (e) => { if (e.target.classList.contains("modal-backdrop")) closeModal(e.target); }
   );
 
-  // subir (admin tools)
   $("#upload-form")?.addEventListener("submit", handleUpload);
 
-  // cargar y render
   await loadRepoManifest();
   buildWeeksSidebar();
   openWeek(1);
 
-  // Traer sesión actual (para refrescar UI al recargar)
   if (supabase && supabase.auth) {
     const { data: { session } } = await supabase.auth.getSession();
     store.session = session || null;
