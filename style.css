@@ -747,3 +747,47 @@ select::-ms-expand { display: none; }
   bottom: 10%; right: 8%;
 }
 
+/* ======= Fix: que el sidebar no tape el contenido en pantallas pequeñas ======= */
+
+/* Asegura que el main siempre deje espacio para el sidebar */
+.with-sidebar {
+  padding-left: calc(var(--sb-w) + var(--gap));
+}
+
+/* En pantallas medianas/pequeñas ajusta los tamaños y fuerza ese padding */
+@media (max-width: 1024px) {
+  :root{
+    /* Sidebar un poco más angosto y menor gap en pantallas medianas */
+    --sb-w: 240px;
+    --gap: 1rem;
+  }
+
+  /* Mantener el relleno a la izquierda sí o sí */
+  .with-sidebar {
+    padding-left: calc(var(--sb-w) + var(--gap)) !important;
+  }
+
+  /* Oculta la barra de semanas para evitar doble solape en pantallas pequeñas */
+  .sidebar-2 {
+    display: none !important;
+  }
+}
+
+/* En pantallas muy pequeñas (móvil) aún más compacto */
+@media (max-width: 640px) {
+  :root{
+    --sb-w: 220px;
+    --gap: .75rem;
+  }
+
+  .with-sidebar {
+    padding-left: calc(var(--sb-w) + var(--gap)) !important;
+  }
+
+  /* Si tu sidebar tiene blur y sombra, reduce el impacto visual en móviles */
+  .sidebar {
+    box-shadow: 0 6px 18px rgba(0,0,0,.25);
+    backdrop-filter: blur(10px) saturate(120%);
+  }
+}
+
