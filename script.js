@@ -507,6 +507,28 @@ document.addEventListener('DOMContentLoaded', () => {
   showLanding(false);
 });
 
+// ======= Menú hamburguesa (abrir/cerrar sidebar en móvil) =======
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.createElement('div');
+  overlay.className = 'menu-overlay';
+  document.body.appendChild(overlay);
+
+  const btn = document.getElementById('btn-menu-toggle');
+
+  if (btn && sidebar) {
+    btn.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+      overlay.classList.toggle('show');
+    });
+  }
+
+  // Cierra al hacer clic fuera del menú
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('active');
+    overlay.classList.remove('show');
+  });
+});
 
 
 
