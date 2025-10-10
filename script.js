@@ -359,7 +359,7 @@ async function sbSignInWithGoogle() {
     provider: 'google',
     options: {
       // Supabase redirige al callback y luego a tu Site URL
-      redirectTo: window.location.origin  // opcional; si ya configuraste Site URL puedes omitirlo
+      redirectTo: 'https://r01085b-limaylla.github.io/PortafolioArq/'  // opcional; si ya configuraste Site URL puedes omitirlo
     }
   });
   if (error) throw error;
