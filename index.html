@@ -249,6 +249,39 @@
       </form>
     </div>
   </div>
+ <!-- cuenta seccion -->
+  <section id="view-account" class="hidden space-y-6">
+  <div class="card">
+    <div class="flex items-center gap-4">
+      <img id="account-avatar" src="" alt="Avatar" class="w-16 h-16 rounded-xl border border-white/10 object-cover">
+      <div class="flex-1">
+        <div class="flex items-center gap-2 flex-wrap">
+          <h3 id="account-name" class="text-xl font-bold">—</h3>
+          <span id="account-provider" class="chip">—</span>
+        </div>
+        <p id="account-email" class="text-slate-300 text-sm mt-1">—</p>
+      </div>
+      <button id="btn-logout-account" class="btn btn-primary">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="card">
+      <h4 class="text-sm uppercase tracking-wider text-slate-400 mb-2">Detalles</h4>
+      <ul class="text-sm space-y-1">
+        <li><span class="text-slate-400">ID:</span> <span id="account-id">—</span></li>
+        <li><span class="text-slate-400">Verificado:</span> <span id="account-verified">—</span></li>
+        <li><span class="text-slate-400">Creado:</span> <span id="account-created">—</span></li>
+        <li><span class="text-slate-400">Último login:</span> <span id="account-last-signin">—</span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4 class="text-sm uppercase tracking-wider text-slate-400 mb-2">Identidades</h4>
+      <div id="account-identities" class="text-sm text-slate-300">—</div>
+    </div>
+  </div>
+</section>
 
   <!-- Preview Modal -->
   <div id="modal-preview" class="modal-backdrop">
