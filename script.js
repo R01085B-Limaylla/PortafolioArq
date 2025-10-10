@@ -380,27 +380,6 @@ function updateAuthUI() {
   openWeek(store.currentWeek || 1);
 }
 
-
-
-if (supabase && supabase.auth) {
-  supabase.auth.onAuthStateChange((_event, session) => {
-    store.session = session || null;
-    store.userEmail = session?.user?.email || null;
-    store.isAdmin = !!store.userEmail && store.userEmail.toLowerCase() === "admin@upla.edu";
-    updateAuthUI();
-    if (session) populateAccount(session);
-    else renderSidebarUser(null);
-  });
-}
-
-supabase.auth.onAuthStateChange((_event, session) => {
-  const user = session?.user;
-  store.isAdmin = (user?.email === 'admin@upla.edu');
-  updateAccountSection(user);
-  refreshUIAfterAuthChange();
-});
-
-
 async function updateAccountSection(user) {
   if (!user) return;
 
@@ -409,6 +388,25 @@ async function updateAccountSection(user) {
   $('#account-provider-detail').textContent = user.app_metadata?.provider || '—';
   $('#account-last-login').textContent = new Date(user.last_sign_in_at).toLocaleString();
   $('#account-role').textContent = user.email === 'admin@upla.edu' ? 'Administrador' : 'Usuario registrado';
+}
+
+if (supabase && supabase.auth) {
+  supabase.auth.onAuthStateChange((_event, session) => {
+    store.session = session || null;
+    store.userEmail = session?.user?.email || null;
+    store.isAdmin = !!store.userEmail && store.userEmail.toLowerCase() === "admin@upla.edu";
+    updateAuthUI();
+
+    // Mostrar/ocultar pestaña "Cuenta"
+    document.querySelector('[data-nav="account"]').classList.toggle('hidden', !session);
+    
+    if (session) {
+      populateAccount(session);
+      updateAccountSection(session.user); // ✅ <-- agrega esta línea
+    } else {
+      renderSidebarUser(null);
+    }
+  });
 }
 
 async function sbSignInWithGoogle() {
