@@ -107,15 +107,40 @@
           <span class="tag">Admin</span>
           </div>
 
-        <form id="upload-form" class="grid sm:grid-cols-5 gap-2">
-          <input id="title-input" type="text" placeholder="Título"
-                 class="sm:col-span-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2" required />
-          <select id="week-select" class="rounded-xl bg-white/5 border border-white/10 px-3 py-2" required></select>
-          <button class="btn btn-primary sm:col-span-5 justify-center" type="submit">Subir</button>
-          <input id="file-input" type="file" accept="image/*,application/pdf"
-                 class="sm:col-span-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2" required />
-          
-        </form>
+        <form id="upload-form" class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+  <!-- Fila 1: Título (largo) + Semana -->
+  <input
+    id="title-input"
+    type="text"
+    placeholder="Título"
+    class="sm:col-span-3 h-11 rounded-xl bg-white/5 border border-white/10 px-3"
+    required
+  />
+
+  <select
+    id="week-select"
+    class="sm:col-span-2 h-11 rounded-xl bg-white/5 border border-white/10 px-3"
+    required
+  ></select>
+
+  <!-- Fila 2: archivo a todo el ancho -->
+  <input
+    id="file-input"
+    type="file"
+    accept="image/*,application/pdf"
+    class="sm:col-span-5 h-11 rounded-xl bg-white/5 border border-white/10 px-3 py-2"
+    required
+  />
+
+  <!-- Fila 3: botón Subir a todo el ancho -->
+  <button
+    class="btn btn-primary sm:col-span-5 justify-center"
+    type="submit"
+  >
+    Subir
+  </button>
+</form>
+
 
        
       </div>
