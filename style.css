@@ -641,3 +641,97 @@ select:focus {
 /* Windows/IE antiguo: ocultar “flecha” nativa sobrante */
 select::-ms-expand { display: none; }
 
+/* ===== LANDING / SPLASH ===== */
+.landing {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(60% 80% at 0% 100%, rgba(79,111,179,.25), transparent 60%),
+    radial-gradient(60% 80% at 100% 0%, rgba(67,102,208,.25), transparent 60%),
+    linear-gradient(180deg, var(--bg-1, #0b1226), var(--bg-2, #0e1a3a));
+  z-index: 999;
+  opacity: 1;
+  transition: opacity .35s ease;
+}
+
+.landing.hidden { display: none; } /* para SSR/FOUC si quieres ocultarlo por defecto */
+.landing.fade-out { opacity: 0; pointer-events: none; }
+
+.landing__inner {
+  text-align: center;
+  max-width: 960px;
+  padding: 2rem;
+  color: var(--txt, #e8eeff);
+  transform: translateY(8px);
+  animation: landingUp .5s ease forwards .1s;
+}
+
+@keyframes landingUp {
+  to { transform: translateY(0); }
+}
+
+.landing__logo img {
+  width: 72px; height: 72px;
+  object-fit: contain; border-radius: 16px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(140,170,255,.16);
+  margin: 0 auto 1rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+.landing__title {
+  font-weight: 800;
+  font-size: clamp(1.4rem, 2.6vw, 2.2rem);
+  letter-spacing: .2px;
+}
+
+.landing__subtitle {
+  margin-top: .5rem;
+  color: var(--sub, #a9b6dc);
+}
+
+.landing__actions {
+  margin-top: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.landing__btn {
+  padding: .8rem 1.2rem;
+  min-width: 220px;
+  font-size: .95rem;
+  border-radius: 14px;
+}
+
+.landing__remember {
+  font-size: .85rem;
+  color: var(--sub, #a9b6dc);
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  user-select: none;
+}
+
+/* Glows decorativos */
+.landing__glow {
+  position: absolute;
+  filter: blur(60px);
+  pointer-events: none;
+  opacity: .35;
+}
+.landing__glow--1 {
+  width: 380px; height: 380px;
+  background: #4f6fb3;
+  top: 15%; left: 12%;
+}
+.landing__glow--2 {
+  width: 420px; height: 420px;
+  background: #3759d6;
+  bottom: 10%; right: 8%;
+}
+
