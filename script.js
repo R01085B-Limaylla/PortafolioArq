@@ -1,9 +1,12 @@
+
 /************************************
  *  Portfolio – script.js (COMPLETO)
  *  - Supabase Storage (bucket: uploads) + manifest.json
- *  - Auth (solo admin@upla.edu puede editar)
+ *  - Auth (Google / Password)  → oculta "Iniciar sesión" y muestra "Cerrar sesión" cuando hay sesión
+ *  - Solo admin@upla.edu puede Editar/Eliminar
  *  - Sidebar de semanas
  *  - Grid con overlay (Ver/Descargar) y barra inferior (Editar/Eliminar) para admin
+ *  - Sección "Cuenta" con datos del usuario autenticado
  ************************************/
 
 /* ========= SUPABASE ========= */
@@ -25,7 +28,9 @@ const MANIFEST_PATH = "manifest.json";
 const store = {
   repoEntries: [],   // { name, title, week, type, url }
   isAdmin: false,
-  currentWeek: 1
+  currentWeek: 1,
+  session: null,
+  userEmail: null
 };
 
 /* ========= UTILS ========= */
@@ -53,12 +58,12 @@ function extIsImage(filename) {
 
 /* ========= NAV ENTRE VISTAS ========= */
 window.showView = function(name) {
-  const vp = $("#view-portfolio");
-  const vf = $("#view-profile");
-  if (vp && vf) {
-    vp.classList.toggle("hidden", name !== "portfolio");
-    vf.classList.toggle("hidden", name !== "profile");
-  }
+  const vp  = $("#view-portfolio");
+  const vf  = $("#view-profile");
+  const vac = $("#view-account");
+  if (vp)  vp.classList.toggle("hidden", name !== "portfolio");
+  if (vf)  vf.classList.toggle("hidden", name !== "profile");
+  if (vac) vac.classList.toggle("hidden", name !== "account");
 
   // activar botón del menú
   $$("button[data-nav]").forEach(b => {
@@ -337,18 +342,68 @@ function openWeek(w) {
 }
 
 /* ========= AUTH ========= */
+function populateAccount(session) {
+  const user = session?.user;
+  const email = user?.email || "—";
+  const name = user?.user_metadata?.full_name || user?.user_metadata?.name || (email ? email.split("@")[0] : "—");
+  const avatar = user?.user_metadata?.avatar_url || "";
+  const provider = user?.app_metadata?.provider || "password";
+
+  // Campos
+  const $name   = $("#account-name");
+  const $email  = $("#account-email");
+  const $prov   = $("#account-provider");
+  const $avatar = $("#account-avatar");
+  const $id     = $("#account-id");
+  const $ver    = $("#account-verified");
+  const $created= $("#account-created");
+  const $last   = $("#account-last-signin");
+  const $idents = $("#account-identities");
+
+  if ($name)   $name.textContent = name;
+  if ($email)  $email.textContent = email;
+  if ($prov)   $prov.textContent  = provider;
+  if ($avatar) $avatar.src        = avatar || "https://ui-avatars.com/api/?name=" + encodeURIComponent(name);
+  if ($id)     $id.textContent    = user?.id || "—";
+  if ($ver)    $ver.textContent   = user?.email_confirmed_at ? "Sí" : "No";
+  if ($created)$created.textContent = user?.created_at ? new Date(user.created_at).toLocaleString() : "—";
+  if ($last)   $last.textContent  = user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : "—";
+
+  if ($idents) {
+    const idents = user?.identities || [];
+    if (!idents.length) $idents.textContent = "—";
+    else {
+      $idents.innerHTML = idents.map(idt => {
+        const prov = idt?.provider || "—";
+        const idv  = idt?.identity_data?.sub || idt?.id || "—";
+        return `<div><span class="text-slate-400">• ${prov}:</span> ${idv}</div>`;
+      }).join("");
+    }
+  }
+}
+
 function updateAuthUI() {
-  $("#btn-login") ?.classList.toggle("hidden", store.isAdmin);
-  $("#btn-logout")?.classList.toggle("hidden", !store.isAdmin);
-  $("#admin-tools")?.classList.toggle("hidden", !store.isAdmin);
+  const hasSession = !!store.session;
+  const isAdmin = store.isAdmin;
+
+  // Login/Logout
+  $("#btn-login") ?.classList.toggle("hidden", hasSession);
+  $("#btn-logout")?.classList.toggle("hidden", !hasSession);
+  // Herramientas admin
+  $("#admin-tools")?.classList.toggle("hidden", !isAdmin);
+
+  // Refresca grid para mostrar/ocultar acciones admin
   openWeek(store.currentWeek || 1);
 }
 
+// Suscripción a cambios de auth
 if (supabase && supabase.auth) {
   supabase.auth.onAuthStateChange((_event, session) => {
-    const email = session?.user?.email || null;
-    store.isAdmin = !!email && email.toLowerCase() === "admin@upla.edu";
+    store.session = session || null;
+    store.userEmail = session?.user?.email || null;
+    store.isAdmin = !!store.userEmail && store.userEmail.toLowerCase() === "admin@upla.edu";
     updateAuthUI();
+    if (session) populateAccount(session);
   });
 }
 
@@ -357,14 +412,12 @@ async function sbSignInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      // Supabase redirige al callback y luego a tu Site URL
       redirectTo: window.location.origin + window.location.pathname  // vuelve a la misma página
     }
   });
   if (error) throw error;
   return data;
 }
-
 
 /* ========= UPLOAD (usa manifest) ========= */
 async function handleUpload(e) {
@@ -460,6 +513,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadRepoManifest();
   buildWeeksSidebar();
   openWeek(1);
-  updateAuthUI();
+
+  // Traer sesión actual (para refrescar UI al recargar)
+  if (supabase && supabase.auth) {
+    const { data: { session } } = await supabase.auth.getSession();
+    store.session = session || null;
+    store.userEmail = session?.user?.email || null;
+    store.isAdmin = !!store.userEmail && store.userEmail.toLowerCase() === "admin@upla.edu";
+    updateAuthUI();
+    if (session) populateAccount(session);
+  } else {
+    updateAuthUI();
+  }
 });
 
