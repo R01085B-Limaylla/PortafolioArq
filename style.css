@@ -579,3 +579,9 @@ button[data-nav].active{ background: rgba(255,255,255,.10); border:1px solid var
   #view-profile .btn-social { padding: .4rem .7rem; font-size: .85rem; }
 }
 
+.user-mini {
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
