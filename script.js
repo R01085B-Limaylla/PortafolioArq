@@ -1,4 +1,3 @@
-
 /************************************
  *  Portfolio – script.js (COMPLETO)
  *  - Supabase Storage (bucket: uploads) + manifest.json
@@ -53,35 +52,35 @@ function extIsImage(filename) {
 }
 
 /* ========= NAV ENTRE VISTAS ========= */
-window.showView = function (name) {
-  const vp = document.getElementById('view-portfolio');
-  const vf = document.getElementById('view-profile');
-  const va = document.getElementById('view-account');
+window.showView = function(name) {
+  const vp = $("#view-portfolio");
+  const vf = $("#view-profile");
+  if (vp && vf) {
+    vp.classList.toggle("hidden", name !== "portfolio");
+    vf.classList.toggle("hidden", name !== "profile");
+  }
 
-  if (vp) vp.classList.toggle('hidden', name !== 'portfolio');
-  if (vf) vf.classList.toggle('hidden', name !== 'profile');
-  if (va) va.classList.toggle('hidden', name !== 'account');
-
-  // marcar activo en la barra lateral
-  document.querySelectorAll('button[data-nav]').forEach(b => {
+  // activar botón del menú
+  $$("button[data-nav]").forEach(b => {
     const active = b.dataset.nav === name;
-    b.classList.toggle('active', active);
-    if (active) b.setAttribute('aria-current','page');
-    else b.removeAttribute('aria-current');
+    b.classList.toggle("active", active);
+    if (active) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
   });
 
-  // sidebar de semanas solo para Portafolio
-  if (typeof toggleSecondSidebar === 'function') {
-    toggleSecondSidebar(name === 'portfolio');
-  }
-
-  // abrir semana al entrar a Portafolio
-  if (name === 'portfolio' && typeof openWeek === 'function') {
-    const w = (window.store && window.store.currentWeek) || 1;
-    openWeek(w);
-  }
+  // mostrar sidebar de semanas solo en Portafolio
+  toggleSecondSidebar(name === "portfolio");
+  if (name === "portfolio") openWeek(store.currentWeek || 1);
 };
 
+function toggleSecondSidebar(show) {
+  const sb2 = $("#sidebar-weeks");
+  const main = $("#app-main");
+  if (!sb2 || !main) return;
+  sb2.classList.toggle("show", !!show);
+  sb2.style.display = show ? "flex" : "none";
+  main.classList.toggle("with-sidebar-2", !!show);
+}
 
 /* ========= MANIFEST (LEE/ESCRIBE) ========= */
 async function fetchManifest() {
@@ -359,7 +358,7 @@ async function sbSignInWithGoogle() {
     provider: 'google',
     options: {
       // Supabase redirige al callback y luego a tu Site URL
-      redirectTo: 'https://r01085b-limaylla.github.io/PortafolioArq/'  // opcional; si ya configuraste Site URL puedes omitirlo
+      redirectTo: window.location.origin + window.location.pathname  // vuelve a la misma página
     }
   });
   if (error) throw error;
@@ -422,19 +421,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateAuthUI();
   });
 
-   // Botón "Continuar con Google"
-const btnGoogle = document.getElementById('btn-google');
-if (btnGoogle) {
-  btnGoogle.addEventListener('click', async () => {
-    try {
-      await sbSignInWithGoogle(); // te redirige a Google => vuelve con sesión
-    } catch (err) {
-      alert('No se pudo iniciar con Google: ' + err.message);
-    }
-  });
-}
+  // Botón "Continuar con Google"
+  const btnGoogle = document.getElementById('btn-google');
+  if (btnGoogle) {
+    btnGoogle.addEventListener('click', async () => {
+      try {
+        await sbSignInWithGoogle(); // te redirige a Google => vuelve con sesión
+      } catch (err) {
+        alert('No se pudo iniciar con Google: ' + err.message);
+      }
+    });
+  }
 
-   
   $("#login-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = $("#login-user").value.trim();
@@ -464,3 +462,4 @@ if (btnGoogle) {
   openWeek(1);
   updateAuthUI();
 });
+
