@@ -611,3 +611,33 @@ select:focus {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+/* ---- Forzar tema oscuro en el menú nativo del <select> ---- */
+select option,
+select optgroup {
+  color: #e8eeff;              /* texto de las opciones */
+  background: #0b1226;         /* fondo oscuro (igual a --bg-1) */
+}
+
+/* Placeholder / opción deshabilitada */
+select option[disabled] {
+  color: #94a3b8;
+}
+
+/* Mejora contraste cuando el select tiene foco */
+select:focus {
+  outline: none;
+  border-color: #4c8dff;
+  background-color: rgba(255,255,255,0.10);
+}
+
+/* Safari/iOS tiende a ignorar option background; subimos contraste del select */
+@supports (-webkit-touch-callout: none) {
+  select {
+    background-color: rgba(14,26,58,0.95);
+    color: #e8eeff;
+  }
+}
+
+/* Windows/IE antiguo: ocultar “flecha” nativa sobrante */
+select::-ms-expand { display: none; }
+
