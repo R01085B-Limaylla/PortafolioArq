@@ -105,23 +105,19 @@
       <div id="admin-tools" class="hidden card mt-4">
         <div class="flex items-center gap-2 mb-2">
           <span class="tag">Admin</span>
-          <button id="btn-pick-folder" class="btn btn-ghost text-xs">Elegir carpeta (uploads/)</button>
-          <span id="folder-status" class="text-xs text-slate-400">Sin carpeta</span>
-        </div>
+          </div>
 
         <form id="upload-form" class="grid sm:grid-cols-5 gap-2">
           <input id="title-input" type="text" placeholder="Título"
                  class="sm:col-span-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2" required />
           <select id="week-select" class="rounded-xl bg-white/5 border border-white/10 px-3 py-2" required></select>
+          <button class="btn btn-primary sm:col-span-5 justify-center" type="submit">Subir</button>
           <input id="file-input" type="file" accept="image/*,application/pdf"
                  class="sm:col-span-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2" required />
-          <button class="btn btn-primary sm:col-span-5 justify-center" type="submit">Subir</button>
+          
         </form>
 
-        <p class="text-xs text-slate-400 mt-1">
-          Con carpeta conectada, se guardan los archivos y se actualiza
-          <code>uploads/index.json</code> automáticamente.
-        </p>
+       
       </div>
     </section>
 
