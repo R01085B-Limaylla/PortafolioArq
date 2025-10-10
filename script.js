@@ -380,15 +380,7 @@ function updateAuthUI() {
   openWeek(store.currentWeek || 1);
 }
 
-async function updateAccountSection(user) {
-  if (!user) return;
 
-  $('#account-name-detail').textContent = user.user_metadata?.full_name || 'Sin nombre';
-  $('#account-email-detail').textContent = user.email || '—';
-  $('#account-provider-detail').textContent = user.app_metadata?.provider || '—';
-  $('#account-last-login').textContent = new Date(user.last_sign_in_at).toLocaleString();
-  $('#account-role').textContent = user.email === 'admin@upla.edu' ? 'Administrador' : 'Usuario registrado';
-}
 
 if (supabase && supabase.auth) {
   supabase.auth.onAuthStateChange((_event, session) => {
@@ -399,6 +391,24 @@ if (supabase && supabase.auth) {
     if (session) populateAccount(session);
     else renderSidebarUser(null);
   });
+}
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  const user = session?.user;
+  store.isAdmin = (user?.email === 'admin@upla.edu');
+  updateAccountSection(user);
+  refreshUIAfterAuthChange();
+});
+
+
+async function updateAccountSection(user) {
+  if (!user) return;
+
+  $('#account-name-detail').textContent = user.user_metadata?.full_name || 'Sin nombre';
+  $('#account-email-detail').textContent = user.email || '—';
+  $('#account-provider-detail').textContent = user.app_metadata?.provider || '—';
+  $('#account-last-login').textContent = new Date(user.last_sign_in_at).toLocaleString();
+  $('#account-role').textContent = user.email === 'admin@upla.edu' ? 'Administrador' : 'Usuario registrado';
 }
 
 async function sbSignInWithGoogle() {
