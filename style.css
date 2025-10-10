@@ -702,6 +702,18 @@ select::-ms-expand { display: none; }
 }
 
 .landing__btn {
+  display: inline-flex;           /* asegura centrado horizontal y vertical */
+  align-items: center;            /* centra el texto e iconos verticalmente */
+  justify-content: center;        /* centra horizontalmente */
+  padding: 0.9rem 1.6rem;         /* espacio interno equilibrado */
+  min-width: 220px;
+  font-size: 1rem;
+  border-radius: 14px;
+  line-height: 1.2;               /* evita que el texto quede desalineado */
+  text-align: center;             /* centra el texto si el botón crece */
+  box-sizing: border-box;
+}
+ {
   padding: .8rem 1.2rem;
   min-width: 220px;
   font-size: .95rem;
