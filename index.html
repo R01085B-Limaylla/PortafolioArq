@@ -25,6 +25,32 @@
   </script>
 </head>
 <body>
+<!-- Landing / Splash -->
+<div id="landing" class="landing hidden">
+  <div class="landing__inner">
+    <div class="landing__logo">
+      <img src="uploads/LogoUpla.png" alt="Logo" onerror="this.style.display='none'">
+    </div>
+
+    <h1 class="landing__title">Portafolio • Arquitectura de Software</h1>
+    <p class="landing__subtitle">Universidad Peruana Los Andes · Sebastian Limaylla</p>
+
+    <div class="landing__actions">
+      <button id="btn-enter" class="btn btn-primary landing__btn">Entrar al Portafolio</button>
+      <!-- Idea alternativa:
+      <button id="btn-enter-alt" class="btn btn-ghost">Ver Perfil</button>
+      -->
+      <label class="landing__remember">
+        <input id="landing-remember" type="checkbox" checked>
+        No volver a mostrar
+      </label>
+    </div>
+  </div>
+
+  <!-- Decoración sutil -->
+  <div class="landing__glow landing__glow--1"></div>
+  <div class="landing__glow landing__glow--2"></div>
+</div>
 
   <!-- Sidebar principal -->
   <aside class="sidebar glass">
