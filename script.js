@@ -353,6 +353,20 @@ if (supabase && supabase.auth) {
   });
 }
 
+// ===== Google OAuth (Supabase) =====
+async function sbSignInWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      // Supabase redirige al callback y luego a tu Site URL
+      redirectTo: window.location.origin  // opcional; si ya configuraste Site URL puedes omitirlo
+    }
+  });
+  if (error) throw error;
+  return data;
+}
+
+
 /* ========= UPLOAD (usa manifest) ========= */
 async function handleUpload(e) {
   e.preventDefault();
@@ -407,6 +421,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     await supabase.auth.signOut();
     updateAuthUI();
   });
+
+   // Botón "Continuar con Google"
+const btnGoogle = document.getElementById('btn-google');
+if (btnGoogle) {
+  btnGoogle.addEventListener('click', async () => {
+    try {
+      await sbSignInWithGoogle(); // te redirige a Google => vuelve con sesión
+    } catch (err) {
+      alert('No se pudo iniciar con Google: ' + err.message);
+    }
+  });
+}
+
+   
   $("#login-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = $("#login-user").value.trim();
