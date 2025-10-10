@@ -384,9 +384,8 @@ async function updateAccountSection(user) {
   if (!user) return;
 
   $('#account-name-detail').textContent = user.user_metadata?.full_name || 'Sin nombre';
-  $('#account-email-detail').textContent = user.email || '—';
-  $('#account-provider-detail').textContent = user.app_metadata?.provider || '—';
-  $('#account-last-login').textContent = new Date(user.last_sign_in_at).toLocaleString();
+  $('#account-email-detail').textContent = user.email || 'Google';
+  $('#account-provider-detail').textContent = user.app_metadata?.provider || 'Google';
   $('#account-role').textContent = user.email === 'admin@upla.edu' ? 'Administrador' : 'Usuario registrado';
 }
 
