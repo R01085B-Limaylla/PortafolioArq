@@ -352,13 +352,34 @@ function renderSidebarUser(session) {
 function updateAuthUI() {
   const hasSession = !!store.session;
   const isAdmin = store.isAdmin;
+
+  // Botones de login/logout
   $("#btn-login") ?.classList.toggle("hidden", hasSession);
   $("#btn-logout")?.classList.toggle("hidden", !hasSession);
+
+  // Ocultar SIEMPRE el botón de cerrar sesión dentro de la pestaña "Cuenta"
   const btnLogoutAcc = $("#btn-logout-account");
   if (btnLogoutAcc) btnLogoutAcc.classList.add("hidden");
+
+  // Herramientas admin
   $("#admin-tools")?.classList.toggle("hidden", !isAdmin);
+
+  // 🔹 Mostrar/ocultar la pestaña "Cuenta" en la barra lateral
+  const accountBtn = document.querySelector('button[data-nav="account"]');
+  if (accountBtn) {
+    accountBtn.style.display = hasSession ? "flex" : "none"; // muestra solo si hay sesión
+  }
+
+  // 🔹 Mostrar/ocultar mini perfil en sidebar
+  const userBox = document.getElementById("sidebar-userbox");
+  if (userBox) {
+    userBox.style.display = hasSession ? "block" : "none";
+  }
+
+  // Refrescar grid (actualiza botones de admin en las cards)
   openWeek(store.currentWeek || 1);
 }
+
 
 if (supabase && supabase.auth) {
   supabase.auth.onAuthStateChange((_event, session) => {
