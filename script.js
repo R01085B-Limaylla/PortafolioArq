@@ -441,24 +441,16 @@ function showLanding(force = false) {
   const landing = document.getElementById('landing');
   if (!landing) return;
 
-  // Si el usuario ya marcó “no volver a mostrar” y no forzamos, no la mostramos
-  if (!force && localStorage.getItem(LANDING_KEY) === '1') {
-    landing.classList.add('hidden');
-    return;
-  }
-
   landing.classList.remove('hidden');
   landing.classList.remove('fade-out');
 
   // Botones
   const btnEnter = document.getElementById('btn-enter');
-  const remember = document.getElementById('landing-remember');
+  
 
   if (btnEnter) {
     btnEnter.onclick = () => {
-      // Guardar preferencia si el checkbox está marcado
-      if (remember && remember.checked) {
-        localStorage.setItem(LANDING_KEY, '1');
+          
       }
       // Fade out elegante
       landing.classList.add('fade-out');
