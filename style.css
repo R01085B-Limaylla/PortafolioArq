@@ -585,3 +585,29 @@ button[data-nav].active{ background: rgba(255,255,255,.10); border:1px solid var
   border-radius: 14px;
 }
 
+/* Estilo general del select */
+select {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #e0e6f7;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  appearance: none; /* oculta flecha nativa */
+  background-image: url("data:image/svg+xml,%3Csvg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+}
+
+/* Hover */
+select:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Cuando se abre el menú */
+select:focus {
+  outline: none;
+  border-color: #4c8dff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
