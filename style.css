@@ -746,3 +746,73 @@ select::-ms-expand { display: none; }
   background: #3759d6;
   bottom: 10%; right: 8%;
 }
+
+/* ======= OFF-CANVAS SIDEBAR (modo móvil pro) ======= */
+
+/* Por defecto, el sidebar está fuera de pantalla en móvil */
+.sidebar {
+  transition: transform 0.35s ease, opacity 0.3s ease;
+  z-index: 50;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sb-w, 260px);
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(12px);
+    box-shadow: 6px 0 20px rgba(0,0,0,0.4);
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Cuando está activo */
+  .sidebar.active {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Fondo oscuro detrás (overlay) */
+  .menu-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 40;
+  }
+
+  .menu-overlay.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* El main se expande al 100% cuando el menú está oculto */
+  main.with-sidebar {
+    padding-left: 0 !important;
+  }
+
+  /* Botón hamburguesa */
+  .hamburger-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .hamburger-btn:hover {
+    background: rgba(255,255,255,0.15);
+  }
+}
+
