@@ -432,6 +432,67 @@ async function handleUpload(e) {
   }
 }
 
+// ===== Landing / Splash =====
+// Clave de preferencia (no volver a mostrar)
+const LANDING_KEY = 'landing_seen_v1';
+
+// Muestra/oculta la landing sin romper tu lógica
+function showLanding(force = false) {
+  const landing = document.getElementById('landing');
+  if (!landing) return;
+
+  // Si el usuario ya marcó “no volver a mostrar” y no forzamos, no la mostramos
+  if (!force && localStorage.getItem(LANDING_KEY) === '1') {
+    landing.classList.add('hidden');
+    return;
+  }
+
+  landing.classList.remove('hidden');
+  landing.classList.remove('fade-out');
+
+  // Botones
+  const btnEnter = document.getElementById('btn-enter');
+  const remember = document.getElementById('landing-remember');
+
+  if (btnEnter) {
+    btnEnter.onclick = () => {
+      // Guardar preferencia si el checkbox está marcado
+      if (remember && remember.checked) {
+        localStorage.setItem(LANDING_KEY, '1');
+      }
+      // Fade out elegante
+      landing.classList.add('fade-out');
+      setTimeout(() => {
+        landing.classList.add('hidden');
+        // Ir a Portafolio (no toca tu sidebar)
+        if (typeof showView === 'function') showView('portfolio');
+      }, 320);
+    };
+  }
+
+  // Si añadiste un botón alternativo a Perfil:
+  const btnAlt = document.getElementById('btn-enter-alt');
+  if (btnAlt) {
+    btnAlt.onclick = () => {
+      if (remember && remember.checked) {
+        localStorage.setItem(LANDING_KEY, '1');
+      }
+      landing.classList.add('fade-out');
+      setTimeout(() => {
+        landing.classList.add('hidden');
+        if (typeof showView === 'function') showView('profile');
+      }, 320);
+    };
+  }
+}
+
+// Lanza la landing al cargar (solo si no se marcó "no volver a mostrar")
+document.addEventListener('DOMContentLoaded', () => {
+  showLanding(false);
+});
+
+
+
 document.addEventListener("DOMContentLoaded", async () => {
   ensureWeekOptions($("#week-select"));
   $$("button[data-nav]").forEach(b => b.onclick = () => showView(b.dataset.nav));
