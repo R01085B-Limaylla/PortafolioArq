@@ -53,6 +53,18 @@
       </button>
     </nav>
 
+    <!-- Mini usuario logueado (se muestra al iniciar sesión) -->
+<div id="user-mini" class="hidden user-mini card" style="margin-bottom:.5rem; padding:.65rem;">
+  <div class="flex items-center gap-2">
+    <img id="user-mini-avatar" src="" alt="avatar" class="w-8 h-8 rounded-lg object-cover border border-white/10">
+    <div class="min-w-0">
+      <div id="user-mini-name" class="text-sm font-semibold leading-tight truncate">—</div>
+      <div id="user-mini-email" class="text-xs text-slate-400 leading-tight truncate">—</div>
+    </div>
+  </div>
+</div>
+  
+    
     <div class="sidebar__footer">
       <button class="btn btn-primary w-full" id="btn-login">Iniciar sesión</button>
       <button class="btn btn-ghost w-full hidden" id="btn-logout">Cerrar sesión</button>
@@ -232,7 +244,9 @@
             </div>
             <p id="account-email" class="text-slate-300 text-sm mt-1">—</p>
           </div>
-          <button id="btn-logout-account" class="btn btn-primary">Cerrar sesión</button>
+          <!-- botón de cuenta deshabilitado/oculto -->
+<button id="btn-logout-account" class="btn btn-primary hidden" type="button">Cerrar sesión</button>
+
         </div>
       </div>
 
