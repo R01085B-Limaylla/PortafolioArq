@@ -513,12 +513,12 @@ document.addEventListener('DOMContentLoaded', () => {
   showLanding(false);
 });
 
-// ======= Menú hamburguesa (abrir/cerrar sidebar en todos los dispositivos) =======
-document.addEventListener('DOMContentLoaded', () => {
+// ======= Menú hamburguesa (todas las pantallas si quieres) =======
+(function initHamburger(){
   const sidebar = document.querySelector('.sidebar');
   if (!sidebar) return;
 
-  // Crear overlay si no existe
+  // crea overlay si no existe
   let overlay = document.querySelector('.menu-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -526,38 +526,42 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(overlay);
   }
 
-  // Crear botón hamburguesa si no existe
-  let btn = document.getElementById('btn-menu-toggle');
-  if (!btn) {
-    btn = document.createElement('button');
-    btn.id = 'btn-menu-toggle';
-    btn.innerHTML = `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"></line>
-        <line x1="3" y1="6" x2="21" y2="6"></line>
-        <line x1="3" y1="18" x2="21" y2="18"></line>
-      </svg>`;
-    btn.className = 'menu-toggle-btn';
-    document.body.prepend(btn);
+  // botón (debe existir el #btn-menu-toggle)
+  const btn = document.getElementById('btn-menu-toggle');
+
+  function openMenu(){
+    sidebar.classList.add('active');
+    overlay.classList.add('show');
+    if (btn) btn.setAttribute('aria-expanded','true');
+  }
+  function closeMenu(){
+    sidebar.classList.remove('active');
+    overlay.classList.remove('show');
+    if (btn) btn.setAttribute('aria-expanded','false');
+  }
+  function toggleMenu(){
+    if (sidebar.classList.contains('active')) closeMenu();
+    else openMenu();
   }
 
-  // --- comportamiento universal ---
-  const toggleMenu = () => {
-    sidebar.classList.toggle('active');
-    overlay.classList.toggle('show');
-  };
+  // Clic en botón
+  if (btn) btn.addEventListener('click', toggleMenu);
 
-  btn.addEventListener('click', toggleMenu);
-  overlay.addEventListener('click', toggleMenu);
+  // Clic fuera cierra
+  overlay.addEventListener('click', closeMenu);
 
-  // --- soporte teclado ---
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && sidebar.classList.contains('active')) {
-      toggleMenu();
-    }
+  // Cierra con ESC
+  window.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape') closeMenu();
   });
-});
+
+  // Opcional: si cambias de vista (Portafolio/Perfil/Cuenta), cerramos el menú
+  document.addEventListener('click', (e)=>{
+    const navBtn = e.target.closest('button[data-nav]');
+    if (navBtn) closeMenu();
+  });
+})();
+
 
 // ==== LOGOUT centralizado ====
 // Cierra sesión, limpia hash de OAuth y refresca la UI
