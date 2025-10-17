@@ -383,6 +383,12 @@ function updateAuthUI() {
 async function updateAccountSection(user) {
   if (!user) return;
 
+  // Helper seguro: solo escribe si el elemento existe
+  const setTxt = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
   $('#account-name-detail').textContent = user.user_metadata?.full_name || 'Sin nombre';
   $('#account-email-detail').textContent = user.email || 'Google';
   $('#account-provider-detail').textContent = user.app_metadata?.provider || 'Google';
