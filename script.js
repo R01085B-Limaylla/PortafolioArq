@@ -380,83 +380,27 @@ function updateAuthUI() {
   openWeek(store.currentWeek || 1);
 }
 
-// -------- reemplaza por COMPLETO --------
-function updateAccountSection(user) {
+async function updateAccountSection(user) {
   if (!user) return;
 
-  const when = (cond, fn) => cond && fn();
-  const set = (id, val) => {
+  // Helper seguro: solo escribe si el elemento existe
+  const setTxt = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
   };
-  const pick = (obj, ...keys) => keys.reduce((v, k) => (v ??= obj?.[k]), undefined);
-  const toDate = s => (s ? new Date(s).toLocaleString() : '—');
 
-  const email    = user.email ?? '—';
-  const name     =
-    pick(user.user_metadata, 'full_name', 'name') ||
-    (email.includes('@') ? email.split('@')[0] : '—');
-  const provider = user.app_metadata?.provider ?? '—';
-  const role     = email && email.toLowerCase() === 'admin@upla.edu'
-    ? 'Administrador'
-    : 'Usuario';
-
-  // Soporta ambas nomenclaturas de ids (con y sin "-detail")
-  ['account-name', 'account-name-detail'].forEach(id => set(id, name));
-  ['account-email', 'account-email-detail'].forEach(id => set(id, email));
-  ['account-provider', 'account-provider-detail'].forEach(id => set(id, provider));
-  ['account-role'].forEach(id => set(id, role));
-
-  // Campos opcionales (solo si existen en el HTML)
-  set('account-id', user.id || '—');
-  set('account-created', toDate(user.created_at));
-  set('account-last-signin', toDate(user.last_sign_in_at));
-  set('account-verified', user.email_confirmed_at ? 'Sí' : 'No');
-
-  // Lista de identidades (si el contenedor existe)
-  const identitiesBox = document.getElementById('account-identities');
-  if (identitiesBox) {
-    const ids = Array.isArray(user.identities) ? user.identities : [];
-    identitiesBox.innerHTML = ids.length
-      ? ids.map(i => {
-          const prov = i.provider || '—';
-          const idv = i.identity_data?.email || i.identity_data?.sub || i.id || '—';
-          return `<div>• ${prov}: <span class="text-slate-300">${idv}</span></div>`;
-        }).join('')
-      : '—';
-  }
+  $('#account-name-detail').textContent = user.user_metadata?.full_name || 'Sin nombre';
+  $('#account-email-detail').textContent = user.email || 'Google';
+  $('#account-provider-detail').textContent = user.app_metadata?.provider || 'Google';
+  $('#account-role').textContent = user.email === 'admin@upla.edu' ? 'Administrador' : 'Usuario registrado';
 }
 
-// -------- reemplaza SOLO este bloque onAuthStateChange --------
 if (supabase && supabase.auth) {
-  const runWhenReady = (fn) => {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', fn, { once: true });
-    } else {
-      fn();
-    }
-  };
-
   supabase.auth.onAuthStateChange((_event, session) => {
-    store.session   = session || null;
+    store.session = session || null;
     store.userEmail = session?.user?.email || null;
-    store.isAdmin   = !!store.userEmail && store.userEmail.toLowerCase() === 'admin@upla.edu';
-
+    store.isAdmin = !!store.userEmail && store.userEmail.toLowerCase() === "admin@upla.edu";
     updateAuthUI();
-
-    // Muestra/oculta pestaña "Cuenta" si la tienes en el sidebar
-    const accountBtn = document.querySelector('button[data-nav="account"]');
-    if (accountBtn) accountBtn.style.display = session ? 'flex' : 'none';
-
-    if (session?.user) {
-      // Llamada segura: si el DOM aún no está listo, esperamos
-      runWhenReady(() => updateAccountSection(session.user));
-    } else {
-      renderSidebarUser(null);
-    }
-  });
-}
-
 
     // Mostrar/ocultar pestaña "Cuenta"
     document.querySelector('[data-nav="account"]').classList.toggle('hidden', !session);
