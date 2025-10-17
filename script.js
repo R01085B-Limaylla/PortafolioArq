@@ -380,19 +380,51 @@ function updateAuthUI() {
   openWeek(store.currentWeek || 1);
 }
 
-async function updateAccountSection(user) {
+// -------- reemplaza por COMPLETO --------
+function updateAccountSection(user) {
   if (!user) return;
 
-  // Helper seguro: solo escribe si el elemento existe
-  const setTxt = (id, val) => {
+  const when = (cond, fn) => cond && fn();
+  const set = (id, val) => {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
   };
+  const pick = (obj, ...keys) => keys.reduce((v, k) => (v ??= obj?.[k]), undefined);
+  const toDate = s => (s ? new Date(s).toLocaleString() : '—');
 
-  $('#account-name-detail').textContent = user.user_metadata?.full_name || 'Sin nombre';
-  $('#account-email-detail').textContent = user.email || 'Google';
-  $('#account-provider-detail').textContent = user.app_metadata?.provider || 'Google';
-  $('#account-role').textContent = user.email === 'admin@upla.edu' ? 'Administrador' : 'Usuario registrado';
+  const email    = user.email ?? '—';
+  const name     =
+    pick(user.user_metadata, 'full_name', 'name') ||
+    (email.includes('@') ? email.split('@')[0] : '—');
+  const provider = user.app_metadata?.provider ?? '—';
+  const role     = email && email.toLowerCase() === 'admin@upla.edu'
+    ? 'Administrador'
+    : 'Usuario';
+
+  // Soporta ambas nomenclaturas de ids (con y sin "-detail")
+  ['account-name', 'account-name-detail'].forEach(id => set(id, name));
+  ['account-email', 'account-email-detail'].forEach(id => set(id, email));
+  ['account-provider', 'account-provider-detail'].forEach(id => set(id, provider));
+  ['account-role'].forEach(id => set(id, role));
+
+  // Campos opcionales (solo si existen en el HTML)
+  set('account-id', user.id || '—');
+  set('account-created', toDate(user.created_at));
+  set('account-last-signin', toDate(user.last_sign_in_at));
+  set('account-verified', user.email_confirmed_at ? 'Sí' : 'No');
+
+  // Lista de identidades (si el contenedor existe)
+  const identitiesBox = document.getElementById('account-identities');
+  if (identitiesBox) {
+    const ids = Array.isArray(user.identities) ? user.identities : [];
+    identitiesBox.innerHTML = ids.length
+      ? ids.map(i => {
+          const prov = i.provider || '—';
+          const idv = i.identity_data?.email || i.identity_data?.sub || i.id || '—';
+          return `<div>• ${prov}: <span class="text-slate-300">${idv}</span></div>`;
+        }).join('')
+      : '—';
+  }
 }
 
 if (supabase && supabase.auth) {
