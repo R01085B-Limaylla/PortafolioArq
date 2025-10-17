@@ -427,12 +427,36 @@ function updateAccountSection(user) {
   }
 }
 
+// -------- reemplaza SOLO este bloque onAuthStateChange --------
 if (supabase && supabase.auth) {
+  const runWhenReady = (fn) => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn, { once: true });
+    } else {
+      fn();
+    }
+  };
+
   supabase.auth.onAuthStateChange((_event, session) => {
-    store.session = session || null;
+    store.session   = session || null;
     store.userEmail = session?.user?.email || null;
-    store.isAdmin = !!store.userEmail && store.userEmail.toLowerCase() === "admin@upla.edu";
+    store.isAdmin   = !!store.userEmail && store.userEmail.toLowerCase() === 'admin@upla.edu';
+
     updateAuthUI();
+
+    // Muestra/oculta pestaña "Cuenta" si la tienes en el sidebar
+    const accountBtn = document.querySelector('button[data-nav="account"]');
+    if (accountBtn) accountBtn.style.display = session ? 'flex' : 'none';
+
+    if (session?.user) {
+      // Llamada segura: si el DOM aún no está listo, esperamos
+      runWhenReady(() => updateAccountSection(session.user));
+    } else {
+      renderSidebarUser(null);
+    }
+  });
+}
+
 
     // Mostrar/ocultar pestaña "Cuenta"
     document.querySelector('[data-nav="account"]').classList.toggle('hidden', !session);
