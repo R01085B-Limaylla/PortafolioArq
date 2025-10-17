@@ -530,6 +530,46 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ==== LOGOUT centralizado ====
+// Cierra sesión, limpia hash de OAuth y refresca la UI
+async function performLogout(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  try {
+    await supabase.auth.signOut();
+
+    // Limpia estado local
+    store.session = null;
+    store.userEmail = null;
+    store.isAdmin = false;
+
+    // Si volviste de Google con tokens en el hash, bórralos
+    if (location.hash.includes('access_token') || location.hash.includes('provider_token')) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+
+    // Refresca UI
+    if (typeof updateAuthUI === 'function') updateAuthUI();
+    if (typeof renderSidebarUser === 'function') renderSidebarUser(null);
+    if (typeof populateAccount === 'function') populateAccount(null);
+    if (typeof openWeek === 'function') openWeek(store.currentWeek || 1);
+  } catch (err) {
+    alert('No se pudo cerrar sesión: ' + err.message);
+  }
+}
+
+// Conecta TODOS los botones de logout por id (puedes añadir más)
+function setupLogoutButtons() {
+  ['btn-logout', 'btn-logout-account'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.type = 'button';              // evita submits de forms
+      el.onclick = performLogout;      // usa el handler central
+    }
+  });
+}
+
+// registrar una vez al cargar
+document.addEventListener('DOMContentLoaded', setupLogoutButtons);
 
 
 document.addEventListener("DOMContentLoaded", async () => {
