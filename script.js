@@ -507,26 +507,49 @@ document.addEventListener('DOMContentLoaded', () => {
   showLanding(false);
 });
 
-// ======= Menú hamburguesa (abrir/cerrar sidebar en móvil) =======
+// ======= Menú hamburguesa (abrir/cerrar sidebar en todos los dispositivos) =======
 document.addEventListener('DOMContentLoaded', () => {
   const sidebar = document.querySelector('.sidebar');
-  const overlay = document.createElement('div');
-  overlay.className = 'menu-overlay';
-  document.body.appendChild(overlay);
+  if (!sidebar) return;
 
-  const btn = document.getElementById('btn-menu-toggle');
-
-  if (btn && sidebar) {
-    btn.addEventListener('click', () => {
-      sidebar.classList.toggle('active');
-      overlay.classList.toggle('show');
-    });
+  // Crear overlay si no existe
+  let overlay = document.querySelector('.menu-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'menu-overlay';
+    document.body.appendChild(overlay);
   }
 
-  // Cierra al hacer clic fuera del menú
-  overlay.addEventListener('click', () => {
-    sidebar.classList.remove('active');
-    overlay.classList.remove('show');
+  // Crear botón hamburguesa si no existe
+  let btn = document.getElementById('btn-menu-toggle');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'btn-menu-toggle';
+    btn.innerHTML = `
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>`;
+    btn.className = 'menu-toggle-btn';
+    document.body.prepend(btn);
+  }
+
+  // --- comportamiento universal ---
+  const toggleMenu = () => {
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('show');
+  };
+
+  btn.addEventListener('click', toggleMenu);
+  overlay.addEventListener('click', toggleMenu);
+
+  // --- soporte teclado ---
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+      toggleMenu();
+    }
   });
 });
 
